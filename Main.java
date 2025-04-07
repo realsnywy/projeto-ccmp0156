@@ -1,5 +1,3 @@
-package com.crm;
-
 import java.io.*;
 import java.util.*;
 import java.time.LocalDate;
@@ -26,7 +24,8 @@ class Cliente {
 
     @Override
     public String toString() {
-        return id + ", " + nome + ", " + email + ", " + telefone + ", Compras: " + compras + ", Total Gasto: " + totalGasto;
+        return id + ", " + nome + ", " + email + ", " + telefone + ", Compras: " + compras + ", Total Gasto: "
+                + totalGasto;
     }
 }
 
@@ -81,7 +80,7 @@ class CRM {
         carregarProdutos();
         carregarVendas();
     }
-    
+
     public Produto buscarProdutoPorId(int id) {
         try (BufferedReader reader = new BufferedReader(new FileReader(PRODUTOS_FILE))) {
             String line;
@@ -96,7 +95,7 @@ class CRM {
         }
         return null; // Retorna null se o produto não for encontrado
     }
-    
+
     public void adicionarCliente(int id, String nome, String email, String telefone) {
         clientes.add(new Cliente(id, nome, email, telefone));
         salvarClientes();
@@ -164,7 +163,8 @@ class CRM {
             while ((line = reader.readLine()) != null) {
                 String[] dados = line.split(", ");
                 if (dados.length == 4) {
-                    vendas.add(new Venda(Integer.parseInt(dados[0]), Integer.parseInt(dados[1]), Integer.parseInt(dados[2]), Double.parseDouble(dados[3]), LocalDate.parse(dados[4])));
+                    vendas.add(new Venda(Integer.parseInt(dados[0]), Integer.parseInt(dados[1]),
+                            Integer.parseInt(dados[2]), Double.parseDouble(dados[3]), LocalDate.parse(dados[4])));
                 }
             }
         } catch (IOException e) {
@@ -257,10 +257,10 @@ public class Main {
                     crm.listarClientes();
                 }
                 case 5 -> {
-                	crm.listarProdutos();
+                    crm.listarProdutos();
                 }
                 case 6 -> {
-                	crm.listarVendas();
+                    crm.listarVendas();
                 }
             }
         } while (opcao != 0);
