@@ -47,23 +47,44 @@ class Produto {
 }
 
 class Venda {
-    int clienteId;
-    int produtoId;
-    int qtdProd;
-    double valor;
-    LocalDate data;
+    private Cliente cliente;
+    private Produto produto;
+    private int quantidade;
+    private double valorTotal;
+    private LocalDate data;
 
-    public Venda(int clienteId, int produtoId, int qtdProd, double valor, LocalDate data) {
-        this.clienteId = clienteId;
-        this.produtoId = produtoId;
-        this.qtdProd = qtdProd;
-        this.valor = valor;
+    public Venda(Cliente cliente, Produto produto, int quantidade, LocalDate data) {
+        this.cliente = cliente;
+        this.produto = produto;
+        this.quantidade = quantidade;
+        this.valorTotal = produto.preco * quantidade;
         this.data = data;
+    }
+
+    public Cliente getCliente() {
+        return cliente;
+    }
+
+    public Produto getProduto() {
+        return produto;
+    }
+
+    public int getQuantidade() {
+        return quantidade;
+    }
+
+    public double getValorTotal() {
+        return valorTotal;
+    }
+
+    public LocalDate getData() {
+        return data;
     }
 
     @Override
     public String toString() {
-        return "Cliente ID: " + clienteId + ", Produto ID: " + produtoId + ", Valor: " + valor + ", Data: " + data;
+        return "Cliente: " + cliente.nome + ", Produto: " + produto.nome + ", Quantidade: " + quantidade
+                + ", Valor Total: " + valorTotal + ", Data: " + data;
     }
 }
 
@@ -107,7 +128,13 @@ class CRM {
     }
 
     public void registrarVenda(int clienteId, int produtoId, int qtdProd, double valor) {
-        vendas.add(new Venda(clienteId, produtoId, qtdProd, valor, LocalDate.now()));
+        Cliente cliente = clientes.stream().filter(c -> c.id == clienteId).findFirst().orElse(null);
+        Produto produto = produtos.stream().filter(p -> p.id == produtoId).findFirst().orElse(null);
+        if (cliente != null && produto != null) {
+            vendas.add(new Venda(cliente, produto, qtdProd, LocalDate.now()));
+        } else {
+            System.out.println("Cliente ou Produto não encontrado.");
+        }
         salvarVendas();
     }
 
@@ -162,9 +189,14 @@ class CRM {
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] dados = line.split(", ");
-                if (dados.length == 4) {
-                    vendas.add(new Venda(Integer.parseInt(dados[0]), Integer.parseInt(dados[1]),
-                            Integer.parseInt(dados[2]), Double.parseDouble(dados[3]), LocalDate.parse(dados[4])));
+                if (dados.length == 5) {
+                    Cliente cliente = clientes.stream().filter(c -> c.id == Integer.parseInt(dados[0])).findFirst()
+                            .orElse(null);
+                    Produto produto = produtos.stream().filter(p -> p.id == Integer.parseInt(dados[1])).findFirst()
+                            .orElse(null);
+                    if (cliente != null && produto != null) {
+                        vendas.add(new Venda(cliente, produto, Integer.parseInt(dados[2]), LocalDate.parse(dados[4])));
+                    }
                 }
             }
         } catch (IOException e) {
@@ -197,7 +229,8 @@ class CRM {
     private void salvarVendas() {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(VENDAS_FILE))) {
             for (Venda v : vendas) {
-                writer.write(v.clienteId + ", " + v.produtoId + ", " + v.qtdProd + ", " + v.valor + ", " + v.data);
+                writer.write(v.getCliente().id + ", " + v.getProduto().id + ", " + v.getQuantidade() + ", "
+                        + v.getValorTotal() + ", " + v.getData());
                 writer.newLine();
             }
         } catch (IOException e) {
@@ -208,61 +241,68 @@ class CRM {
 
 public class Main {
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-        CRM crm = new CRM();
-        int opcao;
-        do {
-            System.out.println("1. Adicionar Cliente");
-            System.out.println("2. Adicionar Produto");
-            System.out.println("3. Registrar Venda");
-            System.out.println("4. Listar Clientes");
-            System.out.println("5. Listar Produtos");
-            System.out.println("6. Listar Vendas");
-            System.out.println("0. Sair");
-            System.out.print("Escolha uma opção: ");
-            opcao = scanner.nextInt();
-            scanner.nextLine();
-            switch (opcao) {
-                case 1 -> {
-                    System.out.print("ID: ");
-                    int id = scanner.nextInt();
-                    System.out.print("Nome: ");
-                    String nome = scanner.nextLine();
-                    System.out.print("Email: ");
-                    String email = scanner.nextLine();
-                    System.out.print("Telefone: ");
-                    String telefone = scanner.nextLine();
-                    crm.adicionarCliente(id, nome, email, telefone);
+        try (Scanner scanner = new Scanner(System.in)) {
+            CRM crm = new CRM();
+            int opcao;
+            do {
+                System.out.println("1. Adicionar Cliente");
+                System.out.println("2. Adicionar Produto");
+                System.out.println("3. Registrar Venda");
+                System.out.println("4. Listar Clientes");
+                System.out.println("5. Listar Produtos");
+                System.out.println("6. Listar Vendas");
+                System.out.println("0. Sair");
+                System.out.print("Escolha uma opção: ");
+                opcao = scanner.nextInt();
+                scanner.nextLine();
+                switch (opcao) {
+                    case 1: {
+                        System.out.print("ID: ");
+                        int id = scanner.nextInt();
+                        System.out.print("Nome: ");
+                        String nome = scanner.nextLine();
+                        System.out.print("Email: ");
+                        String email = scanner.nextLine();
+                        System.out.print("Telefone: ");
+                        String telefone = scanner.nextLine();
+                        crm.adicionarCliente(id, nome, email, telefone);
+                        break;
+                    }
+                    case 2: {
+                        System.out.print("ID: ");
+                        int id = scanner.nextInt();
+                        System.out.print("Nome do Produto: ");
+                        String nome = scanner.nextLine();
+                        System.out.print("Preço: ");
+                        double preco = scanner.nextDouble();
+                        crm.adicionarProduto(id, nome, preco);
+                        break;
+                    }
+                    case 3: {
+                        System.out.print("ID: ");
+                        int id = scanner.nextInt();
+                        System.out.print("ID Produto: ");
+                        int idProduto = scanner.nextInt();
+                        System.out.print("QTD Produto: ");
+                        int qtdProd = scanner.nextInt();
+                        Produto produto = crm.buscarProdutoPorId(idProduto);
+                        crm.registrarVenda(id, idProduto, qtdProd, produto.preco * qtdProd);
+                        break;
+                    }
+                    case 4: {
+                        crm.listarClientes();
+                        break;
+                    }
+                    case 5: {
+                        crm.listarProdutos();
+                        break;
+                    }
+                    case 6: {
+                        crm.listarVendas();
+                        break;
+                    }
                 }
-                case 2 -> {
-                    System.out.print("ID: ");
-                    int id = scanner.nextInt();
-                    System.out.print("Nome do Produto: ");
-                    String nome = scanner.nextLine();
-                    System.out.print("Preço: ");
-                    double preco = scanner.nextDouble();
-                    crm.adicionarProduto(id, nome, preco);
-                }
-                case 3 -> {
-                    System.out.print("ID: ");
-                    int id = scanner.nextInt();
-                    System.out.print("ID Produto: ");
-                    int idProduto = scanner.nextInt();
-                    System.out.print("QTD Produto: ");
-                    int qtdProd = scanner.nextInt();
-                    Produto produto = crm.buscarProdutoPorId(idProduto);
-                    crm.registrarVenda(id, idProduto, qtdProd, produto.preco * qtdProd);
-                }
-                case 4 -> {
-                    crm.listarClientes();
-                }
-                case 5 -> {
-                    crm.listarProdutos();
-                }
-                case 6 -> {
-                    crm.listarVendas();
-                }
-            }
-        } while (opcao != 0);
+            } while (opcao != 0);
+        }
     }
 }
