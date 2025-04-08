@@ -4,33 +4,6 @@ import java.io.*;
 import java.util.*;
 import java.time.LocalDate;
 
-class Cliente {
-    int id;
-    String nome, email, telefone;
-    int compras;
-    double totalGasto;
-
-    public Cliente(int id, String nome, String email, String telefone) {
-        this.id = id;
-        this.nome = nome;
-        this.email = email;
-        this.telefone = telefone;
-        this.compras = 0;
-        this.totalGasto = 0.0;
-    }
-
-    public void registrarCompra(double valor) {
-        compras++;
-        totalGasto += valor;
-    }
-
-    @Override
-    public String toString() {
-        return id + ", " + nome + ", " + email + ", " + telefone + ", Compras: " + compras + ", Total Gasto: "
-                + totalGasto;
-    }
-}
-
 class Produto {
     int id;
     String nome;
@@ -48,48 +21,6 @@ class Produto {
     }
 }
 
-class Venda {
-    private Cliente cliente;
-    private Produto produto;
-    private int quantidade;
-    private double valorTotal;
-    private LocalDate data;
-
-    public Venda(Cliente cliente, Produto produto, int quantidade, LocalDate data) {
-        this.cliente = cliente;
-        this.produto = produto;
-        this.quantidade = quantidade;
-        this.valorTotal = produto.preco * quantidade;
-        this.data = data;
-    }
-
-    public Cliente getCliente() {
-        return cliente;
-    }
-
-    public Produto getProduto() {
-        return produto;
-    }
-
-    public int getQuantidade() {
-        return quantidade;
-    }
-
-    public double getValorTotal() {
-        return valorTotal;
-    }
-
-    public LocalDate getData() {
-        return data;
-    }
-
-    @Override
-    public String toString() {
-        return "Cliente: " + cliente.nome + ", Produto: " + produto.nome + ", Quantidade: " + quantidade
-                + ", Valor Total: " + valorTotal + ", Data: " + data;
-    }
-}
-
 class CRM {
     private static final String CLIENTES_FILE = "clientes.txt";
     private static final String PRODUTOS_FILE = "produtos.txt";
@@ -102,7 +33,7 @@ class CRM {
         carregarClientes();
         carregarProdutos();
         carregarVendas();
-    }
+    } 
 
     public Produto buscarProdutoPorId(int id) {
         try (BufferedReader reader = new BufferedReader(new FileReader(PRODUTOS_FILE))) {
@@ -132,8 +63,11 @@ class CRM {
     public void registrarVenda(int clienteId, int produtoId, int qtdProd, double valor) {
         Cliente cliente = clientes.stream().filter(c -> c.id == clienteId).findFirst().orElse(null);
         Produto produto = produtos.stream().filter(p -> p.id == produtoId).findFirst().orElse(null);
+        
         if (cliente != null && produto != null) {
-            vendas.add(new Venda(cliente, produto, qtdProd, LocalDate.now()));
+            Venda venda = new Venda(cliente, produto, qtdProd, LocalDate.now());
+            vendas.add(venda);
+            cliente.registrarCompra(venda); // Registra a venda no cliente
         } else {
             System.out.println("Cliente ou Produto não encontrado.");
         }
@@ -192,12 +126,19 @@ class CRM {
             while ((line = reader.readLine()) != null) {
                 String[] dados = line.split(", ");
                 if (dados.length == 5) {
-                    Cliente cliente = clientes.stream().filter(c -> c.id == Integer.parseInt(dados[0])).findFirst()
-                            .orElse(null);
-                    Produto produto = produtos.stream().filter(p -> p.id == Integer.parseInt(dados[1])).findFirst()
-                            .orElse(null);
+                    Cliente cliente = clientes.stream()
+                        .filter(c -> c.id == Integer.parseInt(dados[0]))
+                        .findFirst().orElse(null);
+                    Produto produto = produtos.stream()
+                        .filter(p -> p.id == Integer.parseInt(dados[1]))
+                        .findFirst().orElse(null);
+                    
                     if (cliente != null && produto != null) {
-                        vendas.add(new Venda(cliente, produto, Integer.parseInt(dados[2]), LocalDate.parse(dados[4])));
+                        Venda venda = new Venda(cliente, produto, 
+                            Integer.parseInt(dados[2]), 
+                            LocalDate.parse(dados[4]));
+                        vendas.add(venda);
+                        cliente.registrarCompra(venda);
                     }
                 }
             }
