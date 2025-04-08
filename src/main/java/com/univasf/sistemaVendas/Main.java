@@ -202,6 +202,7 @@ public class Main {
                     case 1: {
                         System.out.print("ID: ");
                         int id = scanner.nextInt();
+                        scanner.nextLine();
                         System.out.print("Nome: ");
                         String nome = scanner.nextLine();
                         System.out.print("Email: ");
