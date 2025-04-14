@@ -164,4 +164,21 @@ class CRM {
             System.out.println("Erro ao salvar vendas.");
         }
     }
+
+	public void listarClientesMaisLucrativos() {
+		if (clientes.isEmpty()) {
+        System.out.println("Não há clientes cadastrados.\n");
+        return; // deixar o metodo se nao houver clientes
+    }
+		
+		// Ordena em ordem decrescente por isso c2 primeiro
+		List<Cliente> clientesOrdenados = new ArrayList<>(clientes);
+		clientesOrdenados.sort((c1, c2) -> Double.compare(c2.totalGasto, c1.totalGasto));
+		
+		System.out.println("\n TODOS CLIENTES POR ORDEM DE GASTO: \n");
+		for(int i = 0; i<clientesOrdenados.size(); i++) {
+			Cliente cliente = clientesOrdenados.get(i);
+			System.out.printf("%dº - %s (ID: %d) - Total gasto: R$%f\n", i+1, cliente.nome, cliente.id, cliente.totalGasto);
+		}
+	}
 }
