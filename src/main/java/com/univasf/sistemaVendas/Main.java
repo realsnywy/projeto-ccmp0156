@@ -1,9 +1,6 @@
 package com.univasf.sistemaVendas;
 
-import java.io.*;
-import java.util.*;
-import java.time.LocalDate;
-
+import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {

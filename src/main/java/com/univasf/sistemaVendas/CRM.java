@@ -1,9 +1,12 @@
 package com.univasf.sistemaVendas;
 
-import java.io.*;
+import java.io.*; // Seria bom melhorar isso mais tarde, já que o uso de * é considerado uma prática ruim.
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 class CRM {
     private static final String CLIENTES_FILE = "clientes.txt";
@@ -13,10 +16,20 @@ class CRM {
     private List<Produto> produtos = new ArrayList<>();
     private List<Venda> vendas = new ArrayList<>();
 
+    private Timer sugestoesTimer = new Timer();
+
     public CRM() {
         carregarClientes();
         carregarProdutos();
         carregarVendas();
+
+        // Iniciar o timer para sugestões a cada 24 horas
+        sugestoesTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                buscarSugestoesBaseadasNoHistorico();
+            }
+        }, 0, 24 * 60 * 60 * 1000); // Executa uma vez por dia
     }
 
     public Produto buscarProdutoPorId(int id) {
@@ -96,7 +109,8 @@ class CRM {
             while ((line = reader.readLine()) != null) {
                 String[] dados = line.split(", ");
                 if (dados.length == 4) {
-                    produtos.add(new Produto(Integer.parseInt(dados[0]), dados[1], Double.parseDouble(dados[2]), dados[3]));
+                    produtos.add(
+                            new Produto(Integer.parseInt(dados[0]), dados[1], Double.parseDouble(dados[2]), dados[3]));
                 }
             }
         } catch (IOException e) {
@@ -165,20 +179,47 @@ class CRM {
         }
     }
 
-	public void listarClientesMaisLucrativos() {
-		if (clientes.isEmpty()) {
-        System.out.println("Não há clientes cadastrados.\n");
-        return; // deixar o metodo se nao houver clientes
+    public void listarClientesMaisLucrativos() {
+        if (clientes.isEmpty()) {
+            System.out.println("Não há clientes cadastrados.\n");
+            return; // deixar o metodo se nao houver clientes
+        }
+
+        // Ordena em ordem decrescente por isso c2 primeiro
+        List<Cliente> clientesOrdenados = new ArrayList<>(clientes);
+        clientesOrdenados.sort((c1, c2) -> Double.compare(c2.totalGasto, c1.totalGasto));
+
+        System.out.println("\n TODOS CLIENTES POR ORDEM DE GASTO: \n");
+        for (int i = 0; i < clientesOrdenados.size(); i++) {
+            Cliente cliente = clientesOrdenados.get(i);
+            System.out.printf("%dº - %s (ID: %d) - Total gasto: R$%f\n", i + 1, cliente.nome, cliente.id,
+                    cliente.totalGasto);
+        }
     }
-		
-		// Ordena em ordem decrescente por isso c2 primeiro
-		List<Cliente> clientesOrdenados = new ArrayList<>(clientes);
-		clientesOrdenados.sort((c1, c2) -> Double.compare(c2.totalGasto, c1.totalGasto));
-		
-		System.out.println("\n TODOS CLIENTES POR ORDEM DE GASTO: \n");
-		for(int i = 0; i<clientesOrdenados.size(); i++) {
-			Cliente cliente = clientesOrdenados.get(i);
-			System.out.printf("%dº - %s (ID: %d) - Total gasto: R$%f\n", i+1, cliente.nome, cliente.id, cliente.totalGasto);
-		}
-	}
+
+    // Método responsável por buscar sugestões baseadas no histórico de compras.
+    // NOTA: Este método ficará aguardando a implementação do histórico de compras
+    // do Pedro para ser finalizado.
+    public void buscarSugestoesBaseadasNoHistorico() {
+        LocalDate hoje = LocalDate.now();
+
+        for (Cliente cliente : clientes) {
+            long diasInativo = ChronoUnit.DAYS.between(
+                    cliente.historicoCompras.isEmpty() ? cliente.getDataCadastro()
+                            : cliente.historicoCompras.get(cliente.historicoCompras.size() - 1).getData(),
+                    hoje);
+
+            if (diasInativo > 7) {
+                List<Produto> sugestoes = cliente.sugerirProdutosSimilares(produtos);
+                enviarSugestoesParaCliente(cliente, sugestoes);
+            }
+        }
+    }
+
+    private void enviarSugestoesParaCliente(Cliente cliente, List<Produto> sugestoes) {
+        System.out.println("Enviando sugestões para o cliente " + cliente.nome + ":");
+        for (Produto produto : sugestoes) {
+            System.out.println("- " + produto.nome);
+        }
+    }
 }
