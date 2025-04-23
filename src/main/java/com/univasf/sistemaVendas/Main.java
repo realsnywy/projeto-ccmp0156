@@ -1,9 +1,6 @@
 package com.univasf.sistemaVendas;
 
-import java.io.*;
-import java.util.*;
-import java.time.LocalDate;
-
+import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
@@ -26,7 +23,7 @@ public class Main {
                     case 1: {
                         System.out.print("ID: ");
                         int id = scanner.nextInt();
-
+                      
                         scanner.nextLine();
 
                         System.out.print("Nome: ");
