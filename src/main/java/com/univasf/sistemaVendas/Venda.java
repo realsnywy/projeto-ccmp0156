@@ -3,30 +3,33 @@ package com.univasf.sistemaVendas;
 import java.time.LocalDate;
 
 public class Venda {
-    private Cliente cliente;
-    private Produto produto;
-    private int quantidade;
-    private double valorTotal;
-    private LocalDate data;
-    
-    // Mantenha esses campos para compatibilidade
-    int produtoId;
-    int qtdProd;
-    double valor;
+    // Atributos principais da classe Venda
+    private Cliente cliente; // Cliente associado à venda
+    private Produto produto; // Produto vendido
+    private int quantidade; // Quantidade do produto vendido
+    private double valorTotal; // Valor total da venda
+    private LocalDate data; // Data da venda
 
+    // Campos mantidos para compatibilidade com versões anteriores
+    int produtoId; // ID do produto (compatibilidade)
+    int qtdProd; // Quantidade do produto (compatibilidade)
+    double valor; // Valor total da venda (compatibilidade)
+
+    // Construtor da classe Venda
     public Venda(Cliente cliente, Produto produto, int quantidade, LocalDate data) {
         this.cliente = cliente;
         this.produto = produto;
         this.quantidade = quantidade;
-        this.valorTotal = produto.preco * quantidade;
+        this.valorTotal = produto.getPreco() * quantidade; // Calcula o valor total da venda
         this.data = data;
-        
-        // Campos para compatibilidade
-        this.produtoId = produto.id;
+
+        // Inicializa os campos de compatibilidade
+        this.produtoId = produto.getId();
         this.qtdProd = quantidade;
         this.valor = valorTotal;
     }
 
+    // Métodos getters para acessar os atributos da classe
     public Cliente getCliente() {
         return cliente;
     }
@@ -47,10 +50,11 @@ public class Venda {
         return data;
     }
 
+    // Método toString para representar a venda como uma string
     @Override
     public String toString() {
-        return "Cliente: " + cliente.nome + ", Produto: " + produto.nome + 
-               ", Quantidade: " + quantidade + ", Valor: " + valorTotal + 
-               ", Data: " + data;
+        return "Cliente: " + cliente.getNome() + ", Produto: " + produto.getNome() +
+                ", Quantidade: " + quantidade + ", Valor: " + valorTotal +
+                ", Data: " + data;
     }
 }
