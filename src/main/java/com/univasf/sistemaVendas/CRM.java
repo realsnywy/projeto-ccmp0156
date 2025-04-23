@@ -32,6 +32,13 @@ class CRM {
         }, 0, 24 * 60 * 60 * 1000); // Executa uma vez por dia
     }
 
+    public Cliente buscarClientePorId(int clienteId) {
+        return clientes.stream()
+                .filter(c -> c.getId() == clienteId)
+                .findFirst()
+                .orElse(null);
+    }
+
     public Produto buscarProdutoPorId(int id) {
         try (BufferedReader reader = new BufferedReader(new FileReader(PRODUTOS_FILE))) {
             String line;
@@ -47,12 +54,32 @@ class CRM {
         return null; // Retorna null se o produto não for encontrado
     }
 
+    // public void adicionarCliente(int id, String nome, String email, String telefone) {
+    //    clientes.add(new Cliente(id, nome, email, telefone));
+    //    salvarClientes();
+    //}
+
     public void adicionarCliente(int id, String nome, String email, String telefone) {
+        boolean idExiste = clientes.stream().anyMatch(c -> c.id == id);
+        if (idExiste) {
+            System.out.println("Já existe um cliente com esse ID.");
+            return;
+        }
         clientes.add(new Cliente(id, nome, email, telefone));
         salvarClientes();
     }
 
+   // public void adicionarProduto(int id, String nome, double preco, String tipo) {
+   //     produtos.add(new Produto(id, nome, preco, tipo));
+   //     salvarProdutos();
+   // }
+
     public void adicionarProduto(int id, String nome, double preco, String tipo) {
+        boolean idExiste = produtos.stream().anyMatch(p -> p.id == id);
+        if (idExiste) {
+            System.out.println("Já existe um produto com esse ID.");
+            return;
+        }
         produtos.add(new Produto(id, nome, preco, tipo));
         salvarProdutos();
     }
