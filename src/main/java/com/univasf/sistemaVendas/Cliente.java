@@ -59,7 +59,70 @@ public class Cliente {
              .collect(Collectors.toList());
  }
 
- @Override
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public void setNome(String nome) {
+        this.nome = nome;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getTelefone() {
+        return telefone;
+    }
+
+    public void setTelefone(String telefone) {
+        this.telefone = telefone;
+    }
+
+    public int getCompras() {
+        return compras;
+    }
+
+    public void setCompras(int compras) {
+        this.compras = compras;
+    }
+
+    public double getTotalGasto() {
+        return totalGasto;
+    }
+
+    public void setTotalGasto(double totalGasto) {
+        this.totalGasto = totalGasto;
+    }
+
+    public List<Venda> getHistoricoCompras() {
+        return historicoCompras;
+    }
+
+    public void exibirHistoricoCompras() {
+        if (historicoCompras.isEmpty()) {
+            System.out.println("Nenhuma compra registrada para este cliente.");
+        } else {
+            System.out.println("Histórico de compras do cliente " + this.nome + ":");
+            for (Venda venda : historicoCompras) {
+                System.out.println(venda); // Certifique-se de que a classe Venda tem um toString() bem feito
+            }
+        }
+    }
+
+    @Override
  public String toString() {
      return id + ", " + nome + ", " + email + ", " + telefone + ", Compras: " + compras + ", Total Gasto: " + totalGasto;
  }

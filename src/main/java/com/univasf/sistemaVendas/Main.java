@@ -17,6 +17,7 @@ public class Main {
                 System.out.println("4. Listar Clientes");
                 System.out.println("5. Listar Produtos");
                 System.out.println("6. Listar Vendas");
+                System.out.println("7. Histórico de Compras do cliente");
                 System.out.println("0. Sair");
                 System.out.print("Escolha uma opção: ");
                 opcao = scanner.nextInt();
@@ -25,8 +26,13 @@ public class Main {
                     case 1: {
                         System.out.print("ID: ");
                         int id = scanner.nextInt();
+
+                        scanner.nextLine();
+
                         System.out.print("Nome: ");
                         String nome = scanner.nextLine();
+
+
                         System.out.print("Email: ");
                         String email = scanner.nextLine();
                         System.out.print("Telefone: ");
@@ -54,10 +60,16 @@ public class Main {
                         break;
                     }
                     case 3: {
-                        System.out.print("ID: ");
+                        System.out.print("ID do cliente: ");
                         int id = scanner.nextInt();
+
+                        scanner.nextLine();
+
                         System.out.print("ID Produto: ");
                         int idProduto = scanner.nextInt();
+
+                        scanner.nextLine();
+
                         System.out.print("QTD Produto: ");
                         int qtdProd = scanner.nextInt();
                         Produto produto = crm.buscarProdutoPorId(idProduto);
@@ -74,6 +86,19 @@ public class Main {
                     }
                     case 6: {
                         crm.listarVendas();
+                        break;
+                    }
+
+                    case 7:{
+                        System.out.print("Informe o ID do cliente: ");
+                        int id = scanner.nextInt();
+                        scanner.nextLine();
+                        Cliente cliente = crm.buscarClientePorId(id);
+                        if (cliente != null) {
+                            cliente.exibirHistoricoCompras();
+                        } else {
+                            System.out.println("Cliente não encontrado.");
+                        }
                         break;
                     }
                 }
