@@ -20,7 +20,7 @@ public class ConexaoDB {
 
     /**
      * Método estático para obter uma conexão com o banco de dados.
-     * 
+     *
      * @return Objeto Connection para interagir com o banco de dados.
      * @throws SQLException Caso ocorra algum erro ao tentar estabelecer a conexão.
      */

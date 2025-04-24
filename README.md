@@ -2,10 +2,10 @@
 
 ## 📚 Contexto
 
-Este projeto foi desenvolvido em **Java 24** como parte da disciplina de **Planejamento e Gestão Estratégica**.  
+Este projeto foi desenvolvido em **Java 24** como parte da disciplina de **Planejamento e Gestão Estratégica**.
 
-- **Curso:** Ciência da Computação  
-- **Período:** 2025.1  
+- **Curso:** Ciência da Computação
+- **Período:** 2025.1
 - **Instituição:** Universidade do Vale do São Francisco (UNIVASF)
 
 ## 💻 Sobre
