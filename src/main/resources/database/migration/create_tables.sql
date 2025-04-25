@@ -1,5 +1,3 @@
-CREATE DATABASE IF NOT EXISTS sistemaVendas;
-USE sistemaVendas;
 -- Tabela Cliente
 CREATE TABLE IF NOT EXISTS Cliente (
   id INT AUTO_INCREMENT PRIMARY KEY,
