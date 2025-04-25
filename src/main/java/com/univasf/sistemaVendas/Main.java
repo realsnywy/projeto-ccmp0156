@@ -4,6 +4,9 @@ import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
+        // Executa o script do banco de dados na inicialização
+        ConexaoDB.runDatabaseScript();
+
         try (Scanner scanner = new Scanner(System.in)) {
             CRM crm = new CRM(); // Instância do sistema CRM para gerenciar clientes, produtos e vendas
             int opcao; // Variável para armazenar a opção do menu escolhida pelo usuário

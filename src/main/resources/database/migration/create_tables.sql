@@ -1,7 +1,7 @@
 CREATE DATABASE IF NOT EXISTS sistemaVendas;
-USE sistema_vendas;
+USE sistemaVendas;
 -- Tabela Cliente
-CREATE TABLE Cliente (
+CREATE TABLE IF NOT EXISTS Cliente (
   id INT AUTO_INCREMENT PRIMARY KEY,
   nome VARCHAR (255) NOT NULL,
   email VARCHAR (255) UNIQUE NOT NULL,
@@ -9,7 +9,7 @@ CREATE TABLE Cliente (
   data_cadastro DATE NOT NULL
 );
 -- Tabela Produtos
-CREATE TABLE Produtos (
+CREATE TABLE IF NOT EXISTS Produtos (
   id INT AUTO_INCREMENT PRIMARY KEY,
   nome VARCHAR (255) NOT NULL,
   descricao TEXT,
@@ -18,7 +18,7 @@ CREATE TABLE Produtos (
   data_cadastro DATE NOT NULL
 );
 -- Tabela Vendas
-CREATE TABLE Vendas (
+CREATE TABLE IF NOT EXISTS Vendas (
   id INT AUTO_INCREMENT PRIMARY KEY,
   cliente_id INT NOT NULL,
   data_venda DATETIME NOT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE Vendas (
   FOREIGN KEY (cliente_id) REFERENCES Cliente (id)
 );
 -- Tabela ItensVenda
-CREATE TABLE ItensVenda (
+CREATE TABLE IF NOT EXISTS ItensVenda (
   id INT AUTO_INCREMENT PRIMARY KEY,
   venda_id INT NOT NULL,
   produto_id INT NOT NULL,
