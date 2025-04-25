@@ -34,14 +34,21 @@ public class ConexaoDB {
                 Statement statement = connection.createStatement();
                 BufferedReader reader = new BufferedReader(new FileReader(SCRIPT_PATH))) {
 
-            // Lê e executa o script SQL
+            // Lê o script SQL e divide em comandos individuais
             StringBuilder sql = new StringBuilder();
             String linha;
             while ((linha = reader.readLine()) != null) {
                 sql.append(linha).append("\n");
             }
 
-            statement.execute(sql.toString());
+            // Divide o script em comandos individuais usando o ponto e vírgula
+            String[] commands = sql.toString().split(";");
+            for (String command : commands) {
+                if (!command.trim().isEmpty()) { // Ignora comandos vazios
+                    statement.execute(command.trim());
+                }
+            }
+
             System.out.println("Script do banco de dados executado com sucesso.");
         } catch (Exception e) {
             System.err.println("Erro ao executar o script do banco de dados: " + e.getMessage());
