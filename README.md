@@ -27,11 +27,14 @@ Para executar o projeto utilizando o wrapper do Maven (`mvnw`), siga os passos a
 3. Execute os seguintes comandos:
 
     ```bash
-    # Limpar e construir o projeto
-    ./mvnw clean install
+        # Aplicar migrações do banco de dados
+        ./mvnw flyway:migrate
 
-    # Executar o projeto
-    ./mvnw exec:java
+        # Limpar e construir o projeto
+        ./mvnw clean install
+
+        # Executar o projeto
+        ./mvnw exec:java
     ```
 
 > Este projeto está em desenvolvimento e é destinado exclusivamente para fins acadêmicos.
