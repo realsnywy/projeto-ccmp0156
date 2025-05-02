@@ -20,6 +20,8 @@ public class Main {
                 System.out.println("6. Listar Vendas");
                 System.out.println("7. Histórico de Compras do Cliente");
                 System.out.println("8. Listar Clientes Mais Lucrativos");
+                System.out.println("9. Listar Produtos Mais vendidos");
+                System.out.println("10. Listar períodos mais vendidos");
                 System.out.println("0. Sair");
                 System.out.print("Escolha uma opção: ");
                 opcao = scanner.nextInt();
@@ -28,9 +30,6 @@ public class Main {
                 switch (opcao) {
                     case 1: {
                         // Adicionar um novo cliente
-                        System.out.print("ID: ");
-                        int id = scanner.nextInt();
-                        scanner.nextLine();
 
                         System.out.print("Nome: ");
                         String nome = scanner.nextLine();
@@ -41,15 +40,11 @@ public class Main {
                         System.out.print("Telefone: ");
                         String telefone = scanner.nextLine();
 
-                        crm.adicionarCliente(id, nome, email, telefone); // Chama o método para adicionar cliente
+                        crm.adicionarCliente(nome, email, telefone); // Chama o método para adicionar cliente
                         break;
                     }
                     case 2: {
                         // Adicionar um novo produto
-                        System.out.print("ID: ");
-                        int id = scanner.nextInt();
-                        scanner.nextLine();
-
                         System.out.print("Nome do Produto: ");
                         String nome = scanner.nextLine();
 
@@ -60,7 +55,7 @@ public class Main {
                         System.out.print("Tipo: ");
                         String tipo = scanner.nextLine();
 
-                        crm.adicionarProduto(id, nome, preco, tipo); // Chama o método para adicionar produto
+                        crm.adicionarProduto(nome, preco, tipo); // Chama o método para adicionar produto
                         break;
                     }
                     case 3: {
@@ -119,6 +114,15 @@ public class Main {
                         // Listar os clientes mais lucrativos
                         crm.listarClientesMaisLucrativos();
                         break;
+                    }
+                    case 9:{
+                        //Listar produtos mais vendidos
+                        crm.listarProdutosMaisVendidos();
+                        break;
+                    }
+                    case 10:{
+                        //Listar período de mais vendas
+                        crm.listarPeriodosMaisVendidos();
                     }
                     case 0: {
                         // Encerrar o sistema
