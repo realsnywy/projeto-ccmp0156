@@ -12,8 +12,8 @@ import java.sql.Statement;
  */
 public class ConexaoDB {
     private static final String URL = "jdbc:mariadb://localhost:3306/sistemaVendas";
-    private static final String USER = "root";
-    private static final String PASSWORD = "21040810";
+    private static final String USER = "admin_sistema";
+    private static final String PASSWORD = "S!st3m@2025";
     private static final String SCRIPT_PATH = "src/main/resources/database/migration/create_tables.sql";
 
     /**
