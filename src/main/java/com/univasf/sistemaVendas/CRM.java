@@ -1,5 +1,6 @@
 package com.univasf.sistemaVendas;
 
+import java.sql.Statement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -51,50 +52,60 @@ class CRM {
     }
 
     // Adiciona um novo cliente ao sistema e ao banco de dados
-    public void adicionarCliente(int id, String nome, String email, String telefone) {
-        if (clientes.stream().anyMatch(c -> c.getId() == id)) {
-            System.out.println("Já existe um cliente com esse ID.");
-            return;
-        }
-        Cliente novoCliente = new Cliente(id, nome, email, telefone);
-        clientes.add(novoCliente);
+    public void adicionarCliente(String nome, String email, String telefone) {
+        Cliente novoCliente = null;
 
-        // Salva o cliente no banco de dados
-        String sql = "INSERT INTO Cliente (id, nome, email, telefone, data_cadastro) VALUES (?, ?, ?, ?, CURDATE())";
+        String sql = "INSERT INTO Cliente (nome, email, telefone, data_cadastro) VALUES (?, ?, ?, CURDATE())";
         try (Connection conn = ConexaoDB.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, id);
-            stmt.setString(2, nome);
-            stmt.setString(3, email);
-            stmt.setString(4, telefone);
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
+            stmt.setString(1, nome);
+            stmt.setString(2, email);
+            stmt.setString(3, telefone);
             stmt.executeUpdate();
+
+            // Recupera o ID gerado automaticamente
+            ResultSet rs = stmt.getGeneratedKeys();
+            if (rs.next()) {
+                int idGerado = rs.getInt(1);
+                novoCliente = new Cliente(idGerado, nome, email, telefone);
+                clientes.add(novoCliente);
+                System.out.println("Cliente adicionado com ID: " + idGerado);
+            }
+
         } catch (SQLException e) {
             System.out.println("Erro ao adicionar cliente: " + e.getMessage());
         }
     }
 
+
     // Adiciona um novo produto ao sistema e ao banco de dados
-    public void adicionarProduto(int id, String nome, double preco, String tipo) {
-        if (produtos.stream().anyMatch(p -> p.getId() == id)) {
-            System.out.println("Já existe um produto com esse ID.");
-            return;
-        }
-        Produto novoProduto = new Produto(id, nome, preco, tipo);
+    public void adicionarProduto(String nome, double preco, String tipo) {
+        Produto novoProduto = new Produto(nome, preco, tipo);
         produtos.add(novoProduto);
 
-        // Salva o produto no banco de dados
-        String sql = "INSERT INTO Produtos (id, nome, descricao, preco, estoque, data_cadastro) VALUES (?, ?, ?, ?, 0, CURDATE())";
+        // Agora o ID é gerado automaticamente pelo banco
+        String sql = "INSERT INTO Produtos (nome, descricao, preco, estoque, data_cadastro) VALUES (?, ?, ?, 0, CURDATE())";
         try (Connection conn = ConexaoDB.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, id);
-            stmt.setString(2, nome);
-            stmt.setString(3, tipo);
-            stmt.setDouble(4, preco);
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
+            stmt.setString(1, nome);
+            stmt.setString(2, tipo);
+            stmt.setDouble(3, preco);
             stmt.executeUpdate();
+
+            // Recupera o ID gerado automaticamente, se quiser armazenar no objeto
+            ResultSet generatedKeys = stmt.getGeneratedKeys();
+            if (generatedKeys.next()) {
+                novoProduto.setId(generatedKeys.getInt(1));
+            }
+
+            System.out.println("Produto adicionado com sucesso.");
         } catch (SQLException e) {
             System.out.println("Erro ao adicionar produto: " + e.getMessage());
         }
     }
+
 
     // Registra uma nova venda no sistema e no banco de dados
     public void registrarVenda(int clienteId, int produtoId, int qtdProd, double valor) {
@@ -104,15 +115,32 @@ class CRM {
         if (cliente != null && produto != null) {
             Venda venda = new Venda(cliente, produto, qtdProd, LocalDate.now());
             vendas.add(venda);
-            cliente.registrarCompra(venda);
+            cliente.adicionarGasto(venda.getValorTotal());
+
+            // Atualiza o total gasto do cliente no banco de dados
+            String sqlAtualizarCliente = "UPDATE Cliente SET total_gasto = total_gasto + ? WHERE id = ?";
+            try (Connection conn = ConexaoDB.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement(sqlAtualizarCliente)) {
+                stmt.setDouble(1, venda.getValorTotal()); // Atualiza o total gasto com o valor da venda
+                stmt.setInt(2, clienteId); // Define o ID do cliente
+                int linhasAfetadas = stmt.executeUpdate(); // Executa a atualização
+
+                if (linhasAfetadas > 0) {
+                    System.out.println("Total gasto do cliente atualizado com sucesso!");
+                } else {
+                    System.out.println("Erro ao atualizar o total gasto do cliente.");
+                }
+            } catch (SQLException e) {
+                System.out.println("Erro ao registrar venda no cliente: " + e.getMessage());
+            }
 
             // Salva a venda e os itens da venda no banco de dados
             String sqlVenda = "INSERT INTO Vendas (cliente_id, data_venda, valor_total) VALUES (?, ?, ?)";
             String sqlItemVenda = "INSERT INTO ItensVenda (venda_id, produto_id, quantidade, preco_unitario) VALUES (LAST_INSERT_ID(), ?, ?, ?)";
 
             try (Connection conn = ConexaoDB.getConnection();
-                    PreparedStatement stmtVenda = conn.prepareStatement(sqlVenda);
-                    PreparedStatement stmtItemVenda = conn.prepareStatement(sqlItemVenda)) {
+                 PreparedStatement stmtVenda = conn.prepareStatement(sqlVenda);
+                 PreparedStatement stmtItemVenda = conn.prepareStatement(sqlItemVenda)) {
 
                 // Insere a venda
                 stmtVenda.setInt(1, clienteId);
@@ -133,7 +161,9 @@ class CRM {
         }
     }
 
-    // Lista todos os clientes cadastrados
+
+
+                         // Lista todos os clientes cadastrados
     public void listarClientes() {
         for (Cliente c : clientes) {
             System.out.println(c);
@@ -220,6 +250,32 @@ class CRM {
         }
     }
 
+    //Vai me dar uma lista de clientes
+    public void carregarClientesDoBanco() {
+        clientes.clear(); // limpa a lista atual
+
+        String sql = "SELECT id, nome, email, telefone, compras, total_gasto FROM Cliente";
+        try (Connection conn = ConexaoDB.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                Cliente cliente = new Cliente(
+                        rs.getInt("id"),
+                        rs.getString("nome"),
+                        rs.getString("email"),
+                        rs.getString("telefone"),
+                        rs.getInt("compras"),
+                        rs.getDouble("total_gasto")
+                );
+                clientes.add(cliente);
+            }
+        } catch (SQLException e) {
+            System.out.println("Erro ao carregar clientes: " + e.getMessage());
+        }
+    }
+
+
     // Lista os clientes mais lucrativos, ordenados pelo total gasto
     public void listarClientesMaisLucrativos() {
         clientes.sort((c1, c2) -> Double.compare(c2.getTotalGasto(), c1.getTotalGasto()));
@@ -271,4 +327,54 @@ class CRM {
             }
         }
     }
+
+    public void listarProdutosMaisVendidos() {
+        String sql = """
+        SELECT p.id, p.nome, SUM(iv.quantidade) AS total_vendido
+        FROM Produtos p
+        JOIN ItensVenda iv ON p.id = iv.produto_id
+        GROUP BY p.id, p.nome
+        ORDER BY total_vendido DESC
+    """;
+
+        try (Connection conn = ConexaoDB.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            System.out.println("\nPRODUTOS MAIS VENDIDOS:");
+            while (rs.next()) {
+                int id = rs.getInt("id");
+                String nome = rs.getString("nome");
+                int totalVendido = rs.getInt("total_vendido");
+
+                System.out.printf("ID: %d, Produto: %s, Quantidade Vendida: %d%n", id, nome, totalVendido);
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Erro ao listar produtos mais vendidos: " + e.getMessage());
+        }
+    }
+
+    public void listarPeriodosMaisVendidos() {
+        String sql = "SELECT DATE_FORMAT(data_venda, '%Y-%m') AS mes, COUNT(*) AS total_vendas " +
+                "FROM Vendas " +
+                "GROUP BY mes " +
+                "ORDER BY total_vendas DESC";
+
+        try (Connection conn = ConexaoDB.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            System.out.println("\nPERÍODOS COM MAIS VENDAS (POR MÊS):");
+            while (rs.next()) {
+                String mes = rs.getString("mes");
+                int total = rs.getInt("total_vendas");
+                System.out.printf("Mês: %s, Total de Vendas: %d%n", mes, total);
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Erro ao listar períodos mais vendidos: " + e.getMessage());
+        }
+    }
+
 }

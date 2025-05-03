@@ -9,6 +9,12 @@ class Produto {
     private String tipo; // Tipo ou categoria do produto
 
     // Construtor da classe Produto
+    public Produto(String nome, double preco, String tipo) {// Inicializa o ID do produto
+        this.nome = nome; // Inicializa o nome do produto
+        this.preco = preco; // Inicializa o preço do produto
+        this.tipo = tipo; // Inicializa o tipo do produto
+    }
+
     public Produto(int id, String nome, double preco, String tipo) {
         this.id = id; // Inicializa o ID do produto
         this.nome = nome; // Inicializa o nome do produto
