@@ -65,21 +65,17 @@ public class Cliente {
     }
 
     public void registrarCompra(Venda venda) {
-        String sqlAtualizarCliente = "UPDATE Cliente SET compras = compras + 1, total_gasto = total_gasto + ? WHERE id = ?";
+        String sql = "UPDATE Cliente SET total_gasto = total_gasto + ? WHERE id = ?";
         try (Connection conn = ConexaoDB.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sqlAtualizarCliente)) {
-
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
             stmt.setDouble(1, venda.getValorTotal());
-            stmt.setInt(2, this.getId()); // usa getId() ao invés de this.id
+            stmt.setInt(2, this.getId());
             stmt.executeUpdate();
-
-            // Atualiza também o atributo totalGasto no objeto em memória
-            this.totalGasto += venda.getValorTotal();
-            this.compras += 1;
-
-            System.out.println("Venda registrada no cliente com sucesso!");
+            
+            this.totalGasto += venda.getValorTotal(); // Atualiza em memória
         } catch (SQLException e) {
-            System.out.println("Erro ao registrar venda no cliente: " + e.getMessage());
+            System.out.println("Erro ao atualizar total gasto: " + e.getMessage());
         }
     }
 

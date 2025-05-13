@@ -161,8 +161,34 @@ class CRM {
 
     // Lista todos os clientes cadastrados
     public void listarClientes() {
-        for (Cliente c : clientes) {
-            System.out.println(c);
+        String sql = """
+            SELECT 
+                c.id, c.nome, c.email, c.telefone,
+                COUNT(v.id) AS total_compras,  -- Conta quantas vendas o cliente tem
+                SUM(v.valor_total) AS total_gasto
+            FROM Cliente c
+            LEFT JOIN Vendas v ON c.id = v.cliente_id  -- LEFT JOIN para incluir clientes sem vendas
+            GROUP BY c.id
+            """;
+
+        try (Connection conn = ConexaoDB.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+             
+            ResultSet rs = stmt.executeQuery();
+            System.out.println("--- Listar Clientes ---");
+            while (rs.next()) {
+                System.out.printf(
+                    "%d, %s, %s, %s, Compras: %d, Total Gasto: %.2f\n",
+                    rs.getInt("id"),
+                    rs.getString("nome"),
+                    rs.getString("email"),
+                    rs.getString("telefone"),
+                    rs.getInt("total_compras"),  
+                    rs.getDouble("total_gasto")
+                );
+            }
+        } catch (SQLException e) {
+            System.out.println("Erro ao listar clientes: " + e.getMessage());
         }
     }
 
