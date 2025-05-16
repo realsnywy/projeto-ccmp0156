@@ -162,30 +162,29 @@ class CRM {
     // Lista todos os clientes cadastrados
     public void listarClientes() {
         String sql = """
-            SELECT 
-                c.id, c.nome, c.email, c.telefone,
-                COUNT(v.id) AS total_compras,  -- Conta quantas vendas o cliente tem
-                SUM(v.valor_total) AS total_gasto
-            FROM Cliente c
-            LEFT JOIN Vendas v ON c.id = v.cliente_id  -- LEFT JOIN para incluir clientes sem vendas
-            GROUP BY c.id
-            """;
+                SELECT
+                    c.id, c.nome, c.email, c.telefone,
+                    COUNT(v.id) AS total_compras,  -- Conta quantas vendas o cliente tem
+                    SUM(v.valor_total) AS total_gasto
+                FROM Cliente c
+                LEFT JOIN Vendas v ON c.id = v.cliente_id  -- LEFT JOIN para incluir clientes sem vendas
+                GROUP BY c.id
+                """;
 
         try (Connection conn = ConexaoDB.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-             
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
             ResultSet rs = stmt.executeQuery();
             System.out.println("--- Listar Clientes ---");
             while (rs.next()) {
                 System.out.printf(
-                    "%d, %s, %s, %s, Compras: %d, Total Gasto: %.2f\n",
-                    rs.getInt("id"),
-                    rs.getString("nome"),
-                    rs.getString("email"),
-                    rs.getString("telefone"),
-                    rs.getInt("total_compras"),  
-                    rs.getDouble("total_gasto")
-                );
+                        "%d, %s, %s, %s, Compras: %d, Total Gasto: %.2f\n",
+                        rs.getInt("id"),
+                        rs.getString("nome"),
+                        rs.getString("email"),
+                        rs.getString("telefone"),
+                        rs.getInt("total_compras"),
+                        rs.getDouble("total_gasto"));
             }
         } catch (SQLException e) {
             System.out.println("Erro ao listar clientes: " + e.getMessage());
@@ -437,4 +436,45 @@ class CRM {
         }
     }
 
+    /**
+     * Cadastra ou atualiza o plano de assinatura do software CRM.
+     * 
+     * @param tipoPlano     Tipo do plano ("Premium", "Gratuito").
+     * @param chaveAtivacao Chave de ativação para planos Premium.
+     * @return true se o plano foi alterado/registrado com sucesso, false caso
+     *         contrário.
+     */
+    public boolean cadastrarPlanoAssinaturaCRM(String tipoPlano, String chaveAtivacao) {
+        System.out.println("\n--- Cadastro/Atualização do Plano de Assinatura do Software CRM ---");
+
+        if ("Premium".equalsIgnoreCase(tipoPlano)) {
+            if (chaveAtivacao != null && !chaveAtivacao.trim().isEmpty()) {
+                System.out.println("Chave de ativação fornecida para o plano Premium: " + chaveAtivacao);
+                System.out.println("Simulando validação da chave...");
+                if (isChavePremiumValida(chaveAtivacao)) {
+                    System.out.println("Chave de ativação válida. Plano Premium do CRM ativado (simulado).");
+                    System.out.println("Em uma implementação real, o status Premium do CRM seria persistido.");
+                    return true;
+                } else {
+                    System.out.println("Chave de ativação inválida para o plano Premium.");
+                    return false;
+                }
+            } else {
+                System.out.println("Ativação do plano Premium requer uma chave de ativação.");
+                return false;
+            }
+        } else if ("Gratuito".equalsIgnoreCase(tipoPlano)) {
+            System.out.println("Plano do CRM configurado para Gratuito (simulado).");
+            System.out.println("Em uma implementação real, o status Gratuito do CRM seria persistido.");
+            return true;
+        } else {
+            System.out.println("Tipo de plano desconhecido fornecido para o CRM: " + tipoPlano);
+            return false;
+        }
+    }
+
+    // Simula a validação da chave Premium.
+    private boolean isChavePremiumValida(String chaveAtivacao) {
+        return "PREMIUM_KEY_123".equals(chaveAtivacao) || "XYZ_VALID_CRM_KEY".equals(chaveAtivacao);
+    }
 }
