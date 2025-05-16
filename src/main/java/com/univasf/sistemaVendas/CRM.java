@@ -1,10 +1,10 @@
 package com.univasf.sistemaVendas;
 
+import java.sql.Statement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -12,88 +12,30 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class CRM {
+class CRM {
     private List<Cliente> clientes = new ArrayList<>();
     private List<Produto> produtos = new ArrayList<>();
     private List<Venda> vendas = new ArrayList<>();
-    private List<PlanoDeAssinatura> planosDeAssinatura = new ArrayList<>();
 
     private Timer sugestoesTimer = new Timer();
 
     public CRM() {
+        // Carrega os dados iniciais do banco de dados
         carregarClientes();
         carregarProdutos();
         carregarVendas();
-        carregarPlanosDeAssinatura();
 
+        // Inicia o timer para gerar sugestões baseadas no histórico de compras a cada
+        // 24 horas
         sugestoesTimer.schedule(new TimerTask() {
             @Override
             public void run() {
                 buscarSugestoesBaseadasNoHistorico();
             }
-        }, 0, 24 * 60 * 60 * 1000);
+        }, 0, 24 * 60 * 60 * 1000); // Executa uma vez por dia
     }
 
-    public void cadastrarPlanoDeAssinatura(String nome, double preco, String duracao) {
-        PlanoDeAssinatura novoPlano = new PlanoDeAssinatura(nome, preco, duracao);
-        String sql = "INSERT INTO PlanosDeAssinatura (nome, preco, duracao) VALUES (?, ?, ?)";
-        try (Connection conn = ConexaoDB.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            stmt.setString(1, nome);
-            stmt.setDouble(2, preco);
-            stmt.setString(3, duracao);
-            int linhasAfetadas = stmt.executeUpdate();
-
-            if (linhasAfetadas > 0) {
-                try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
-                    if (generatedKeys.next()) {
-                        novoPlano.setId(generatedKeys.getInt(1));
-                        planosDeAssinatura.add(novoPlano);
-                        System.out.println("Plano de Assinatura cadastrado com sucesso: " + novoPlano.getNome()
-                                + " (ID: " + novoPlano.getId() + ")");
-                    }
-                }
-            } else {
-                System.out.println("Nenhuma linha afetada ao cadastrar o plano de assinatura.");
-            }
-        } catch (SQLException e) {
-            System.out.println("Erro ao cadastrar Plano de Assinatura: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    private void carregarPlanosDeAssinatura() {
-        String sql = "SELECT id, nome, preco, duracao FROM PlanosDeAssinatura";
-        try (Connection conn = ConexaoDB.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql);
-                ResultSet rs = stmt.executeQuery()) {
-
-            while (rs.next()) {
-                PlanoDeAssinatura plano = new PlanoDeAssinatura(
-                        rs.getString("nome"),
-                        rs.getDouble("preco"),
-                        rs.getString("duracao"));
-                plano.setId(rs.getInt("id"));
-                planosDeAssinatura.add(plano);
-            }
-            System.out.println(planosDeAssinatura.size() + " planos de assinatura carregados.");
-        } catch (SQLException e) {
-            System.out.println("Erro ao carregar planos de assinatura: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    public void listarPlanosDeAssinatura() {
-        if (planosDeAssinatura.isEmpty()) {
-            System.out.println("Nenhum plano de assinatura cadastrado.");
-            return;
-        }
-        System.out.println("\n--- Planos de Assinatura Disponíveis ---");
-        for (PlanoDeAssinatura plano : planosDeAssinatura) {
-            System.out.println(plano);
-        }
-    }
-
+    // Busca um cliente pelo ID
     public Cliente buscarClientePorId(int clienteId) {
         return clientes.stream()
                 .filter(c -> c.getId() == clienteId)
@@ -101,6 +43,7 @@ public class CRM {
                 .orElse(null);
     }
 
+    // Busca um produto pelo ID
     public Produto buscarProdutoPorId(int id) {
         return produtos.stream()
                 .filter(p -> p.getId() == id)
@@ -108,15 +51,20 @@ public class CRM {
                 .orElse(null);
     }
 
+    // Adiciona um novo cliente ao sistema e ao banco de dados
     public void adicionarCliente(String nome, String email, String telefone) {
         Cliente novoCliente = null;
+
         String sql = "INSERT INTO Cliente (nome, email, telefone, data_cadastro) VALUES (?, ?, ?, CURDATE())";
         try (Connection conn = ConexaoDB.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
             stmt.setString(1, nome);
             stmt.setString(2, email);
             stmt.setString(3, telefone);
             stmt.executeUpdate();
+
+            // Recupera o ID gerado automaticamente
             ResultSet rs = stmt.getGeneratedKeys();
             if (rs.next()) {
                 int idGerado = rs.getInt(1);
@@ -124,187 +72,215 @@ public class CRM {
                 clientes.add(novoCliente);
                 System.out.println("Cliente adicionado com ID: " + idGerado);
             }
+
         } catch (SQLException e) {
             System.out.println("Erro ao adicionar cliente: " + e.getMessage());
         }
     }
 
+    // Adiciona um novo produto ao sistema e ao banco de dados
     public void adicionarProduto(String nome, double preco, String tipo) {
         Produto novoProduto = new Produto(nome, preco, tipo);
+        produtos.add(novoProduto);
+
+        // Agora o ID é gerado automaticamente pelo banco
         String sql = "INSERT INTO Produtos (nome, descricao, preco, estoque, data_cadastro) VALUES (?, ?, ?, 0, CURDATE())";
         try (Connection conn = ConexaoDB.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
             stmt.setString(1, nome);
             stmt.setString(2, tipo);
             stmt.setDouble(3, preco);
             stmt.executeUpdate();
+
+            // Recupera o ID gerado automaticamente, se quiser armazenar no objeto
             ResultSet generatedKeys = stmt.getGeneratedKeys();
             if (generatedKeys.next()) {
                 novoProduto.setId(generatedKeys.getInt(1));
-                produtos.add(novoProduto);
-                System.out.println("Produto adicionado com sucesso com ID: " + novoProduto.getId());
             }
+
+            System.out.println("Produto adicionado com sucesso.");
         } catch (SQLException e) {
             System.out.println("Erro ao adicionar produto: " + e.getMessage());
         }
     }
 
+    // Registra uma nova venda no sistema e no banco de dados
     public void registrarVenda(int clienteId, int produtoId, int qtdProd, double valor) {
         Cliente cliente = buscarClientePorId(clienteId);
         Produto produto = buscarProdutoPorId(produtoId);
 
         if (cliente != null && produto != null) {
-            if (qtdProd <= 0) {
-                System.out.println("Quantidade do produto deve ser positiva.");
-                return;
-            }
             Venda venda = new Venda(cliente, produto, qtdProd, LocalDate.now());
+            vendas.add(venda);
+            cliente.adicionarGasto(venda.getValorTotal());
 
-            String sqlVenda = "INSERT INTO Vendas (cliente_id, data_venda, valor_total) VALUES (?, ?, ?)";
-            String sqlItemVenda = "INSERT INTO ItensVenda (venda_id, produto_id, quantidade, preco_unitario) VALUES (?, ?, ?, ?)";
+            // Atualiza o total gasto do cliente no banco de dados
+            String sqlAtualizarCliente = "UPDATE Cliente SET total_gasto = total_gasto + ? WHERE id = ?";
+            try (Connection conn = ConexaoDB.getConnection();
+                    PreparedStatement stmt = conn.prepareStatement(sqlAtualizarCliente)) {
+                stmt.setDouble(1, venda.getValorTotal()); // Atualiza o total gasto com o valor da venda
+                stmt.setInt(2, clienteId); // Define o ID do cliente
+                int linhasAfetadas = stmt.executeUpdate(); // Executa a atualização
 
-            Connection conn = null;
-            try {
-                conn = ConexaoDB.getConnection();
-                conn.setAutoCommit(false);
-
-                try (PreparedStatement stmtVenda = conn.prepareStatement(sqlVenda, Statement.RETURN_GENERATED_KEYS)) {
-                    stmtVenda.setInt(1, clienteId);
-                    stmtVenda.setDate(2, java.sql.Date.valueOf(venda.getData()));
-                    stmtVenda.setDouble(3, venda.getValorTotal());
-                    stmtVenda.executeUpdate();
-
-                    int vendaId;
-                    try (ResultSet generatedKeys = stmtVenda.getGeneratedKeys()) {
-                        if (generatedKeys.next()) {
-                            vendaId = generatedKeys.getInt(1);
-                        } else {
-                            throw new SQLException("Falha ao obter o ID da venda, nenhum ID retornado.");
-                        }
-                    }
-
-                    try (PreparedStatement stmtItemVenda = conn.prepareStatement(sqlItemVenda)) {
-                        stmtItemVenda.setInt(1, vendaId);
-                        stmtItemVenda.setInt(2, produtoId);
-                        stmtItemVenda.setInt(3, qtdProd);
-                        stmtItemVenda.setDouble(4, produto.getPreco());
-                        stmtItemVenda.executeUpdate();
-                    }
+                if (linhasAfetadas > 0) {
+                    System.out.println("Total gasto do cliente atualizado com sucesso!");
+                } else {
+                    System.out.println("Erro ao atualizar o total gasto do cliente.");
                 }
-
-                String sqlAtualizarCliente = "UPDATE Cliente SET total_gasto = total_gasto + ?, compras = compras + 1 WHERE id = ?";
-                try (PreparedStatement stmtAtualizaCliente = conn.prepareStatement(sqlAtualizarCliente)) {
-                    stmtAtualizaCliente.setDouble(1, venda.getValorTotal());
-                    stmtAtualizaCliente.setInt(2, clienteId);
-                    int linhasAfetadas = stmtAtualizaCliente.executeUpdate();
-                    if (linhasAfetadas == 0) {
-                        throw new SQLException("Falha ao atualizar dados do cliente.");
-                    }
-                }
-
-                conn.commit();
-                vendas.add(venda);
-                cliente.adicionarGasto(venda.getValorTotal());
-                cliente.registrarCompra(venda);
-                System.out.println("Venda registrada com sucesso!");
-
             } catch (SQLException e) {
-                if (conn != null) {
-                    try {
-                        conn.rollback();
-                    } catch (SQLException ex) {
-                        System.out.println("Erro ao reverter transação: " + ex.getMessage());
-                    }
-                }
+                System.out.println("Erro ao registrar venda no cliente: " + e.getMessage());
+            }
+
+            // Salva a venda e os itens da venda no banco de dados
+            String sqlVenda = "INSERT INTO Vendas (cliente_id, data_venda, valor_total) VALUES (?, ?, ?)";
+            String sqlItemVenda = "INSERT INTO ItensVenda (venda_id, produto_id, quantidade, preco_unitario) VALUES (LAST_INSERT_ID(), ?, ?, ?)";
+
+            try (Connection conn = ConexaoDB.getConnection();
+                    PreparedStatement stmtVenda = conn.prepareStatement(sqlVenda);
+                    PreparedStatement stmtItemVenda = conn.prepareStatement(sqlItemVenda)) {
+
+                // Insere a venda
+                stmtVenda.setInt(1, clienteId);
+                stmtVenda.setDate(2, java.sql.Date.valueOf(venda.getData()));
+                stmtVenda.setDouble(3, venda.getValorTotal());
+                stmtVenda.executeUpdate();
+
+                // Insere o item da venda
+                stmtItemVenda.setInt(1, produtoId);
+                stmtItemVenda.setInt(2, qtdProd);
+                stmtItemVenda.setDouble(3, produto.getPreco());
+                stmtItemVenda.executeUpdate();
+            } catch (SQLException e) {
                 System.out.println("Erro ao registrar venda: " + e.getMessage());
-                e.printStackTrace();
-            } finally {
-                if (conn != null) {
-                    try {
-                        conn.setAutoCommit(true);
-                        conn.close();
-                    } catch (SQLException e) {
-                        System.out.println("Erro ao fechar conexão: " + e.getMessage());
-                    }
-                }
             }
         } else {
-            if (cliente == null)
-                System.out.println("Cliente com ID " + clienteId + " não encontrado.");
-            if (produto == null)
-                System.out.println("Produto com ID " + produtoId + " não encontrado.");
+            System.out.println("Cliente ou Produto não encontrado.");
         }
     }
 
+    // Lista todos os clientes cadastrados
     public void listarClientes() {
         String sql = """
-                SELECT
-                    c.id, c.nome, c.email, c.telefone, c.compras, c.total_gasto
-                FROM Cliente c
-                ORDER BY c.nome
-                """;
+            SELECT 
+                c.id, c.nome, c.email, c.telefone,
+                COUNT(v.id) AS total_compras,  -- Conta quantas vendas o cliente tem
+                SUM(v.valor_total) AS total_gasto
+            FROM Cliente c
+            LEFT JOIN Vendas v ON c.id = v.cliente_id  -- LEFT JOIN para incluir clientes sem vendas
+            GROUP BY c.id
+            """;
 
         try (Connection conn = ConexaoDB.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql);
-                ResultSet rs = stmt.executeQuery()) {
-
-            System.out.println("\n--- Lista de Clientes ---");
-            boolean found = false;
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+             
+            ResultSet rs = stmt.executeQuery();
+            System.out.println("--- Listar Clientes ---");
             while (rs.next()) {
-                found = true;
                 System.out.printf(
-                        "ID: %d, Nome: %s, Email: %s, Telefone: %s, Compras: %d, Total Gasto: R$ %.2f%n",
-                        rs.getInt("id"),
-                        rs.getString("nome"),
-                        rs.getString("email"),
-                        rs.getString("telefone"),
-                        rs.getInt("compras"),
-                        rs.getDouble("total_gasto"));
-            }
-            if (!found) {
-                System.out.println("Nenhum cliente cadastrado.");
+                    "%d, %s, %s, %s, Compras: %d, Total Gasto: %.2f\n",
+                    rs.getInt("id"),
+                    rs.getString("nome"),
+                    rs.getString("email"),
+                    rs.getString("telefone"),
+                    rs.getInt("total_compras"),  
+                    rs.getDouble("total_gasto")
+                );
             }
         } catch (SQLException e) {
             System.out.println("Erro ao listar clientes: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
+    // Lista todos os produtos cadastrados
     public void listarProdutos() {
-        if (produtos.isEmpty()) {
-            System.out.println("Nenhum produto para listar. Carregando do banco...");
-            carregarProdutos();
-        }
-        if (produtos.isEmpty()) {
-            System.out.println("Nenhum produto cadastrado.");
-            return;
-        }
-        System.out.println("\n--- Lista de Produtos ---");
         for (Produto p : produtos) {
             System.out.println(p);
         }
     }
 
+    // Lista todas as vendas registradas
     public void listarVendas() {
-        if (vendas.isEmpty()) {
-            System.out.println("Nenhuma venda para listar. Carregando do banco...");
-        }
-        if (vendas.isEmpty()) {
-            System.out.println("Nenhuma venda registrada.");
-            return;
-        }
-        System.out.println("\n--- Lista de Vendas ---");
         for (Venda v : vendas) {
             System.out.println(v);
         }
     }
 
+    // Carrega os clientes do banco de dados para a lista local
     private void carregarClientes() {
+        String sql = "SELECT * FROM Cliente";
+        try (Connection conn = ConexaoDB.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                Cliente cliente = new Cliente(
+                        rs.getInt("id"),
+                        rs.getString("nome"),
+                        rs.getString("email"),
+                        rs.getString("telefone"));
+                clientes.add(cliente);
+            }
+        } catch (SQLException e) {
+            System.out.println("Erro ao carregar clientes: " + e.getMessage());
+        }
+    }
+
+    // Carrega os produtos do banco de dados para a lista local
+    private void carregarProdutos() {
+        String sql = "SELECT * FROM Produtos";
+        try (Connection conn = ConexaoDB.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                Produto produto = new Produto(
+                        rs.getInt("id"),
+                        rs.getString("nome"),
+                        rs.getDouble("preco"),
+                        rs.getString("descricao"));
+                produtos.add(produto);
+            }
+        } catch (SQLException e) {
+            System.out.println("Erro ao carregar produtos: " + e.getMessage());
+        }
+    }
+
+    // Carrega as vendas do banco de dados para a lista local
+    private void carregarVendas() {
+        String sql = """
+                    SELECT v.id AS venda_id, v.cliente_id, v.data_venda, v.valor_total,
+                           iv.produto_id, iv.quantidade, iv.preco_unitario
+                    FROM Vendas v
+                    JOIN ItensVenda iv ON v.id = iv.venda_id
+                """;
+        try (Connection conn = ConexaoDB.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                Cliente cliente = buscarClientePorId(rs.getInt("cliente_id"));
+                Produto produto = buscarProdutoPorId(rs.getInt("produto_id"));
+
+                if (cliente != null && produto != null) {
+                    Venda venda = new Venda(cliente, produto,
+                            rs.getInt("quantidade"),
+                            rs.getDate("data_venda").toLocalDate());
+                    vendas.add(venda);
+                    cliente.registrarCompra(venda);
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Erro ao carregar vendas: " + e.getMessage());
+        }
+    }
+
+    // Vai me dar uma lista de clientes
+    public void carregarClientesDoBanco() {
+        clientes.clear(); // limpa a lista atual
+
         String sql = "SELECT id, nome, email, telefone, compras, total_gasto FROM Cliente";
         try (Connection conn = ConexaoDB.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);
                 ResultSet rs = stmt.executeQuery()) {
-            clientes.clear();
+
             while (rs.next()) {
                 Cliente cliente = new Cliente(
                         rs.getInt("id"),
@@ -315,141 +291,60 @@ public class CRM {
                         rs.getDouble("total_gasto"));
                 clientes.add(cliente);
             }
-            System.out.println(clientes.size() + " clientes carregados.");
         } catch (SQLException e) {
             System.out.println("Erro ao carregar clientes: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
-    private void carregarProdutos() {
-        String sql = "SELECT id, nome, descricao, preco FROM Produtos";
-        try (Connection conn = ConexaoDB.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql);
-                ResultSet rs = stmt.executeQuery()) {
-            produtos.clear();
-            while (rs.next()) {
-                Produto produto = new Produto(
-                        rs.getInt("id"),
-                        rs.getString("nome"),
-                        rs.getDouble("preco"),
-                        rs.getString("descricao"));
-                produtos.add(produto);
-            }
-            System.out.println(produtos.size() + " produtos carregados.");
-        } catch (SQLException e) {
-            System.out.println("Erro ao carregar produtos: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    private void carregarVendas() {
-        String sql = """
-                    SELECT v.id AS venda_id, v.cliente_id, v.data_venda, v.valor_total,
-                           iv.produto_id, iv.quantidade, iv.preco_unitario,
-                           p.nome as produto_nome, p.descricao as produto_descricao
-                    FROM Vendas v
-                    JOIN ItensVenda iv ON v.id = iv.venda_id
-                    JOIN Produtos p ON iv.produto_id = p.id
-                    ORDER BY v.data_venda DESC
-                """;
-        try (Connection conn = ConexaoDB.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql);
-                ResultSet rs = stmt.executeQuery()) {
-            vendas.clear();
-            while (rs.next()) {
-                Cliente cliente = buscarClientePorId(rs.getInt("cliente_id"));
-                Produto produto = new Produto(
-                        rs.getInt("produto_id"),
-                        rs.getString("produto_nome"),
-                        rs.getDouble("preco_unitario"),
-                        rs.getString("produto_descricao"));
-
-                if (cliente != null) {
-                    Venda venda = new Venda(
-                            cliente,
-                            produto,
-                            rs.getInt("quantidade"),
-                            rs.getDate("data_venda").toLocalDate());
-                    vendas.add(venda);
-                }
-            }
-            System.out.println(vendas.size() + " vendas carregadas.");
-        } catch (SQLException e) {
-            System.out.println("Erro ao carregar vendas: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    public void carregarClientesDoBanco() {
-        carregarClientes();
-    }
-
+    // Lista os clientes mais lucrativos, ordenados pelo total gasto
     public void listarClientesMaisLucrativos() {
-        if (clientes.isEmpty())
-            carregarClientes();
-        if (clientes.isEmpty()) {
-            System.out.println("Nenhum cliente para listar.");
-            return;
-        }
-        List<Cliente> clientesOrdenados = new ArrayList<>(clientes);
-        clientesOrdenados.sort((c1, c2) -> Double.compare(c2.getTotalGasto(), c1.getTotalGasto()));
-        System.out.println("\n--- Clientes Mais Lucrativos ---");
-        for (Cliente cliente : clientesOrdenados) {
-            System.out.printf("Cliente: %s, Total Gasto: R$ %.2f%n", cliente.getNome(), cliente.getTotalGasto());
+        clientes.sort((c1, c2) -> Double.compare(c2.getTotalGasto(), c1.getTotalGasto()));
+        System.out.println("\nCLIENTES MAIS LUCRATIVOS:");
+        for (Cliente cliente : clientes) {
+            System.out.printf("Cliente: %s, Total Gasto: %.2f%n", cliente.getNome(), cliente.getTotalGasto());
         }
     }
 
+    // Gera sugestões de produtos para clientes inativos
     public void buscarSugestoesBaseadasNoHistorico() {
         LocalDate hoje = LocalDate.now();
-        if (clientes.isEmpty())
-            carregarClientes();
-        if (produtos.isEmpty())
-            carregarProdutos();
 
         for (Cliente cliente : clientes) {
-            LocalDate ultimaCompraData = null;
-            if (cliente.getHistoricoCompras() != null && !cliente.getHistoricoCompras().isEmpty()) {
-                ultimaCompraData = cliente.getHistoricoCompras().stream()
-                        .map(Venda::getData)
-                        .max(LocalDate::compareTo)
-                        .orElse(null);
-            }
-
-            if (ultimaCompraData == null) {
-                ultimaCompraData = hoje.minusDays(31);
-            }
+            // Define a data da última compra ou usa uma data padrão
+            LocalDate ultimaCompraData = cliente.getHistoricoCompras().isEmpty()
+                    ? hoje.minusDays(30) // Assume que o cliente está inativo há 30 dias se não houver histórico
+                    : cliente.getHistoricoCompras().get(cliente.getHistoricoCompras().size() - 1).getData();
 
             long diasInativo = ChronoUnit.DAYS.between(ultimaCompraData, hoje);
 
+            // Envia sugestões apenas para clientes inativos há mais de 7 dias
             if (diasInativo > 7) {
                 try {
-                    List<Integer> sugestoesIds = cliente.sugerirProdutosSimilares(this.produtos);
-                    List<Produto> produtosSugeridos = new ArrayList<>();
-                    for (Integer id : sugestoesIds) {
-                        Produto p = buscarProdutoPorId(id);
-                        if (p != null)
-                            produtosSugeridos.add(p);
-                    }
-                    enviarSugestoesParaCliente(cliente, produtosSugeridos);
+                    List<Integer> sugestoes = cliente.sugerirProdutosSimilares(produtos);
+                    enviarSugestoesParaCliente(cliente, sugestoes);
                 } catch (Exception e) {
                     System.out.println(
                             "Erro ao gerar sugestões para o cliente " + cliente.getNome() + ": " + e.getMessage());
-                    e.printStackTrace();
                 }
             }
         }
     }
 
-    private void enviarSugestoesParaCliente(Cliente cliente, List<Produto> sugestoes) {
+    // Envia sugestões de produtos para um cliente específico
+    private void enviarSugestoesParaCliente(Cliente cliente, List<Integer> sugestoes) {
         if (sugestoes == null || sugestoes.isEmpty()) {
+            System.out.println("Nenhuma sugestão disponível para o cliente " + cliente.getNome());
             return;
         }
 
-        System.out.println(
-                "\nEnviando sugestões para o cliente " + cliente.getNome() + " (ID: " + cliente.getId() + "):");
-        for (Produto produto : sugestoes) {
-            System.out.println("- " + produto.getNome() + " - Preço: R$ " + produto.getPreco());
+        System.out.println("Enviando sugestões para o cliente " + cliente.getNome() + ":");
+        for (Integer produtoId : sugestoes) {
+            Produto produto = buscarProdutoPorId(produtoId);
+            if (produto != null) {
+                System.out.println("- " + produto.getNome() + " - Preço: R$ " + produto.getPreco());
+            } else {
+                System.out.println("- Produto com ID " + produtoId + " não encontrado.");
+            }
         }
     }
 
@@ -460,64 +355,86 @@ public class CRM {
                     JOIN ItensVenda iv ON p.id = iv.produto_id
                     GROUP BY p.id, p.nome
                     ORDER BY total_vendido DESC
-                    LIMIT 10
                 """;
 
         try (Connection conn = ConexaoDB.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);
                 ResultSet rs = stmt.executeQuery()) {
 
-            System.out.println("\n--- Produtos Mais Vendidos ---");
-            boolean found = false;
+            System.out.println("\nPRODUTOS MAIS VENDIDOS:");
             while (rs.next()) {
-                found = true;
                 int id = rs.getInt("id");
                 String nome = rs.getString("nome");
                 int totalVendido = rs.getInt("total_vendido");
+
                 System.out.printf("ID: %d, Produto: %s, Quantidade Vendida: %d%n", id, nome, totalVendido);
             }
-            if (!found)
-                System.out.println("Não há dados de vendas suficientes para listar os produtos mais vendidos.");
 
         } catch (SQLException e) {
             System.out.println("Erro ao listar produtos mais vendidos: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
     public void listarPeriodosMaisVendidos() {
-        String sql = """
-                SELECT DATE_FORMAT(data_venda, '%Y-%m') AS mes_venda, COUNT(*) AS total_vendas, SUM(valor_total) as faturamento_mes
-                FROM Vendas
-                GROUP BY mes_venda
-                ORDER BY mes_venda DESC
-                """;
+        String sql = "SELECT DATE_FORMAT(data_venda, '%Y-%m') AS mes, COUNT(*) AS total_vendas " +
+                "FROM Vendas " +
+                "GROUP BY mes " +
+                "ORDER BY total_vendas DESC";
 
         try (Connection conn = ConexaoDB.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);
                 ResultSet rs = stmt.executeQuery()) {
 
-            System.out.println("\n--- Períodos com Mais Vendas (por Mês) ---");
-            boolean found = false;
+            System.out.println("\nPERÍODOS COM MAIS VENDAS (POR MÊS):");
             while (rs.next()) {
-                found = true;
-                String mes = rs.getString("mes_venda");
+                String mes = rs.getString("mes");
                 int total = rs.getInt("total_vendas");
-                double faturamento = rs.getDouble("faturamento_mes");
-                System.out.printf("Mês: %s, Total de Vendas: %d, Faturamento: R$ %.2f%n", mes, total, faturamento);
+                System.out.printf("Mês: %s, Total de Vendas: %d%n", mes, total);
             }
-            if (!found)
-                System.out.println("Não há dados de vendas para listar os períodos.");
 
         } catch (SQLException e) {
             System.out.println("Erro ao listar períodos mais vendidos: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
     public void preverDemandaFutura() {
-        System.out.println("\n--- Previsão de Demanda Futura (Baseada nos Top 5 Produtos Históricos) ---");
-        listarProdutosMaisVendidos();
-        System.out.println("Nota: Esta previsão é baseada no histórico geral de vendas dos produtos mais vendidos.");
+        String sql = """
+                    SELECT
+                        p.id AS produto_id,
+                        p.nome AS produto_nome,
+                        SUM(iv.quantidade) AS quantidade_total_geral
+                    FROM ItensVenda iv
+                    JOIN Produtos p ON iv.produto_id = p.id
+                    JOIN Vendas v ON iv.venda_id = v.id -- Join com Vendas para futura análise de período
+                    GROUP BY produto_id, produto_nome
+                    ORDER BY quantidade_total_geral DESC
+                    LIMIT 5 -- Limita aos 5 produtos mais vendidos como previsão inicial
+                """;
+
+        System.out.println("\n--- Previsão de Demanda Futura (Top 5 Produtos Históricos) ---");
+
+        try (Connection conn = ConexaoDB.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                ResultSet rs = stmt.executeQuery()) {
+
+            if (!rs.isBeforeFirst()) {
+                System.out.println("Não há dados de vendas suficientes para gerar uma previsão.");
+                return;
+            }
+
+            while (rs.next()) {
+                int produtoId = rs.getInt("produto_id");
+                String produtoNome = rs.getString("produto_nome");
+                int quantidadeTotal = rs.getInt("quantidade_total_geral");
+
+                System.out.printf("Produto ID: %d, Nome: %s - Demanda Histórica Alta (Total Vendido: %d)%n",
+                        produtoId, produtoNome, quantidadeTotal);
+            }
+            System.out.println("Nota: Esta previsão é baseada no histórico geral de vendas.");
+
+        } catch (SQLException e) {
+            System.err.println("Erro ao prever demanda futura: " + e.getMessage());
+        }
     }
+
 }
