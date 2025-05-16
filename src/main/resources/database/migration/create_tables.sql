@@ -4,7 +4,10 @@ CREATE TABLE IF NOT EXISTS Cliente (
   nome VARCHAR (255) NOT NULL,
   email VARCHAR (255) UNIQUE NOT NULL,
   telefone VARCHAR (20),
-  data_cadastro DATE NOT NULL
+  data_cadastro DATE NOT NULL,
+  compras INT DEFAULT 0,
+  -- Adicionado para rastrear o número de compras
+  total_gasto DECIMAL(10, 2) DEFAULT 0.00 -- Adicionado para rastrear o total gasto
 );
 -- Tabela Produtos
 CREATE TABLE IF NOT EXISTS Produtos (
@@ -13,6 +16,7 @@ CREATE TABLE IF NOT EXISTS Produtos (
   descricao TEXT,
   preco DECIMAL (10, 2) NOT NULL,
   estoque INT NOT NULL,
+  -- Embora não usado ativamente na lógica CRM atual, mantido por ora
   data_cadastro DATE NOT NULL
 );
 -- Tabela Vendas
@@ -30,6 +34,14 @@ CREATE TABLE IF NOT EXISTS ItensVenda (
   produto_id INT NOT NULL,
   quantidade INT NOT NULL,
   preco_unitario DECIMAL (10, 2) NOT NULL,
-  FOREIGN KEY (venda_id) REFERENCES Vendas (id),
+  FOREIGN KEY (venda_id) REFERENCES Vendas (id) ON DELETE CASCADE,
+  -- Adicionado ON DELETE CASCADE
   FOREIGN KEY (produto_id) REFERENCES Produtos (id)
+);
+-- Tabela PlanosDeAssinatura
+CREATE TABLE IF NOT EXISTS PlanosDeAssinatura (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nome VARCHAR(255) NOT NULL,
+  preco DECIMAL(10, 2) NOT NULL,
+  duracao VARCHAR(50) NOT NULL
 );
