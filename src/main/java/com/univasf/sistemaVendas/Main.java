@@ -113,8 +113,10 @@ public class Main {
                 System.out
                         .println("10. Listar Períodos Mais Vendidos" + (isPremiumUser ? "" : " (Requer Premium)"));
                 System.out.println("11. Prever Demanda Futura" + (isPremiumUser ? "" : " (Requer Premium)"));
+                System.out.println(
+                        "12. Gerar Relatório Estratégico Consolidado" + (isPremiumUser ? "" : " (Requer Premium)"));
                 System.out.println("------------------------------------");
-                System.out.println("12. Ativar/Gerenciar Plano Premium do CRM");
+                System.out.println("13. Ativar/Gerenciar Plano Premium do CRM");
                 System.out.println("0. Sair");
                 System.out.print("Escolha uma opção: ");
 
@@ -217,7 +219,8 @@ public class Main {
                     case 8:
                     case 9:
                     case 10:
-                    case 11: {
+                    case 11:
+                    case 12: {
                         if (isPremiumUser) {
                             switch (opcao) {
                                 case 7: {
@@ -257,15 +260,19 @@ public class Main {
                                     limparTela();
                                     crm.preverDemandaFutura();
                                     break;
+                                case 12:
+                                    limparTela();
+                                    crm.gerarRelatorioEstrategico();
+                                    break;
                             }
                         } else {
                             limparTela();
                             System.out.println("Esta funcionalidade é exclusiva para o plano Premium do CRM.");
-                            System.out.println("Por favor, ative o plano na opção 12 para acessá-la.");
+                            System.out.println("Por favor, ative o plano na opção 13 para acessá-la.");
                         }
                         break;
                     }
-                    case 12: {
+                    case 13: {
                         limparTela();
                         isPremiumUser = gerenciarPlanoAssinaturaCRM(scanner, isPremiumUser, crm);
                         break;

@@ -11,6 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.io.IOException;
 
 class CRM {
     private List<Cliente> clientes = new ArrayList<>();
@@ -401,44 +404,195 @@ class CRM {
                     SELECT
                         p.id AS produto_id,
                         p.nome AS produto_nome,
-                        SUM(iv.quantidade) AS quantidade_total_geral
+                        p.descricao AS produto_tipo,
+                        SUM(iv.quantidade) AS quantidade_total_geral,
+                        AVG(iv.quantidade) AS media_vendas_por_transacao,
+                        COUNT(DISTINCT v.id) AS numero_transacoes
                     FROM ItensVenda iv
                     JOIN Produtos p ON iv.produto_id = p.id
-                    JOIN Vendas v ON iv.venda_id = v.id -- Join com Vendas para futura análise de período
-                    GROUP BY produto_id, produto_nome
-                    ORDER BY quantidade_total_geral DESC
-                    LIMIT 5 -- Limita aos 5 produtos mais vendidos como previsão inicial
+                    JOIN Vendas v ON iv.venda_id = v.id
+                    WHERE v.data_venda >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH) -- Considera vendas dos últimos 3 meses
+                    GROUP BY produto_id, produto_nome, produto_tipo
+                    ORDER BY quantidade_total_geral DESC, media_vendas_por_transacao DESC
+                    LIMIT 5
                 """;
 
-        System.out.println("\n--- Previsão de Demanda Futura (Top 5 Produtos Históricos) ---");
+        System.out.println("\n--- Previsão de Demanda Futura (Top 5 Produtos - Últimos 3 Meses) ---");
 
         try (Connection conn = ConexaoDB.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);
                 ResultSet rs = stmt.executeQuery()) {
 
             if (!rs.isBeforeFirst()) {
-                System.out.println("Não há dados de vendas suficientes para gerar uma previsão.");
+                System.out.println("Não há dados de vendas suficientes nos últimos 3 meses para gerar uma previsão.");
                 return;
             }
 
             while (rs.next()) {
-                int produtoId = rs.getInt("produto_id");
                 String produtoNome = rs.getString("produto_nome");
                 int quantidadeTotal = rs.getInt("quantidade_total_geral");
+                double mediaVendas = rs.getDouble("media_vendas_por_transacao");
 
-                System.out.printf("Produto ID: %d, Nome: %s - Demanda Histórica Alta (Total Vendido: %d)%n",
-                        produtoId, produtoNome, quantidadeTotal);
+                System.out.printf(
+                        "Produto: %s - Demanda Histórica Alta (Total Vendido: %d, Média por Transação: %.2f)%n",
+                        produtoNome, quantidadeTotal, mediaVendas);
             }
-            System.out.println("Nota: Esta previsão é baseada no histórico geral de vendas.");
+            System.out.println("Nota: Esta previsão é baseada no histórico de vendas dos últimos 3 meses.");
 
         } catch (SQLException e) {
             System.err.println("Erro ao prever demanda futura: " + e.getMessage());
         }
     }
 
+    // Gera um relatório estratégico consolidado e exporta para CSV
+    public void gerarRelatorioEstrategico() {
+        System.out.println("\n--- RELATÓRIO ESTRATÉGICO CONSOLIDADO (CONSOLE E CSV) ---");
+        String csvFilePath = "relatorio_estrategico.csv";
+
+        try (PrintWriter writer = new PrintWriter(new FileWriter(csvFilePath))) {
+            // Garante que os dados locais estejam sincronizados com o banco
+            carregarClientes();
+            carregarVendas(); // Carrega vendas e atualiza histórico de compras dos clientes
+            carregarProdutos();
+
+            // --- Clientes Mais Lucrativos ---
+            System.out.println("\nCLIENTES MAIS LUCRATIVOS (Console):");
+            List<Cliente> clientesOrdenados = new ArrayList<>(this.clientes);
+            clientesOrdenados.sort((c1, c2) -> Double.compare(c2.getTotalGasto(), c1.getTotalGasto()));
+            if (clientesOrdenados.isEmpty()) {
+                System.out.println("Não há clientes para listar.");
+            } else {
+                for (Cliente cliente : clientesOrdenados) {
+                    System.out.printf("Cliente: %s, Total Gasto: %.2f%n", cliente.getNome(), cliente.getTotalGasto());
+                }
+            }
+            // CSV output for Clientes Mais Lucrativos
+            writer.println("CLIENTES MAIS LUCRATIVOS");
+            writer.println("Nome Cliente,Total Gasto");
+            if (clientesOrdenados.isEmpty()) {
+                writer.println("N/A,N/A");
+            } else {
+                for (Cliente cliente : clientesOrdenados) {
+                    writer.printf("\"%s\",%.2f%n", cliente.getNome().replace("\"", "\"\""), cliente.getTotalGasto());
+                }
+            }
+            writer.println();
+
+            // --- Produtos Mais Vendidos ---
+            System.out.println("\nPRODUTOS MAIS VENDIDOS (Console):");
+            listarProdutosMaisVendidos(); // Console output by calling existing method
+            // CSV output for Produtos Mais Vendidos
+            writer.println("PRODUTOS MAIS VENDIDOS");
+            writer.println("ID Produto,Nome Produto,Tipo,Quantidade Vendida");
+            String sqlProdutosCsv = """
+                        SELECT p.id, p.nome, p.descricao, COALESCE(SUM(iv.quantidade), 0) AS total_vendido
+                        FROM Produtos p
+                        LEFT JOIN ItensVenda iv ON p.id = iv.produto_id
+                        GROUP BY p.id, p.nome, p.descricao
+                        ORDER BY total_vendido DESC, p.nome
+                    """;
+            try (Connection conn = ConexaoDB.getConnection();
+                    PreparedStatement stmt = conn.prepareStatement(sqlProdutosCsv);
+                    ResultSet rs = stmt.executeQuery()) {
+                if (!rs.isBeforeFirst()) {
+                    writer.println("N/A,N/A,N/A,N/A");
+                } else {
+                    while (rs.next()) {
+                        writer.printf("%d,\"%s\",\"%s\",%d%n",
+                                rs.getInt("id"),
+                                rs.getString("nome").replace("\"", "\"\""),
+                                rs.getString("descricao").replace("\"", "\"\""),
+                                rs.getInt("total_vendido"));
+                    }
+                }
+            } catch (SQLException e) {
+                System.out.println("Erro ao gerar CSV para produtos mais vendidos: " + e.getMessage());
+                writer.println("Erro ao gerar dados para produtos mais vendidos," + e.getMessage().replace(",", ";"));
+            }
+            writer.println();
+
+            // --- Períodos Mais Vendidos ---
+            System.out.println("\nPERÍODOS COM MAIS VENDAS (POR MÊS) (Console):");
+            listarPeriodosMaisVendidos(); // Console output by calling existing method
+            // CSV output for Períodos Mais Vendidos
+            writer.println("PERÍODOS COM MAIS VENDAS (MÊS/ANO)");
+            writer.println("Mês/Ano,Total de Vendas,Faturamento Total");
+            String sqlPeriodosCsv = """
+                    SELECT
+                        DATE_FORMAT(data_venda, '%Y-%m') AS mes_ano,
+                        COUNT(*) AS total_vendas,
+                        SUM(valor_total) AS faturamento_total
+                    FROM Vendas
+                    GROUP BY mes_ano
+                    ORDER BY total_vendas DESC, faturamento_total DESC
+                     """;
+            try (Connection conn = ConexaoDB.getConnection();
+                    PreparedStatement stmt = conn.prepareStatement(sqlPeriodosCsv);
+                    ResultSet rs = stmt.executeQuery()) {
+                if (!rs.isBeforeFirst()) {
+                    writer.println("N/A,N/A,N/A");
+                } else {
+                    while (rs.next()) {
+                        writer.printf("%s,%d,%.2f%n",
+                                rs.getString("mes_ano"),
+                                rs.getInt("total_vendas"),
+                                rs.getDouble("faturamento_total"));
+                    }
+                }
+            } catch (SQLException e) {
+                System.out.println("Erro ao gerar CSV para períodos mais vendidos: " + e.getMessage());
+                writer.println("Erro ao gerar dados para períodos mais vendidos," + e.getMessage().replace(",", ";"));
+            }
+            writer.println();
+
+            // --- Previsão de Demanda Futura ---
+            System.out.println("\n--- Previsão de Demanda Futura (Top 5 Produtos - Últimos 3 Meses) (Console) ---");
+            preverDemandaFutura(); // Console output by calling existing method
+            // CSV output for Previsão de Demanda Futura
+            writer.println("PREVISÃO DE DEMANDA FUTURA (TOP 5 PRODUTOS - ÚLTIMOS 3 MESES)");
+            writer.println("Nome Produto,Total Vendido,Média por Transação");
+            String sqlDemandaCsv = """
+                        SELECT
+                            p.nome AS produto_nome,
+                            SUM(iv.quantidade) AS quantidade_total_geral,
+                            AVG(iv.quantidade) AS media_vendas_por_transacao
+                        FROM ItensVenda iv
+                        JOIN Produtos p ON iv.produto_id = p.id
+                        JOIN Vendas v ON iv.venda_id = v.id
+                        WHERE v.data_venda >= DATE_SUB(CURDATE(), INTERVAL 3 MONTH)
+                        GROUP BY p.nome
+                        ORDER BY quantidade_total_geral DESC, media_vendas_por_transacao DESC
+                        LIMIT 5
+                    """;
+            try (Connection conn = ConexaoDB.getConnection();
+                    PreparedStatement stmt = conn.prepareStatement(sqlDemandaCsv);
+                    ResultSet rs = stmt.executeQuery()) {
+                if (!rs.isBeforeFirst()) {
+                    writer.println("Não há dados suficientes para previsão,N/A,N/A");
+                } else {
+                    while (rs.next()) {
+                        writer.printf("\"%s\",%d,%.2f%n",
+                                rs.getString("produto_nome").replace("\"", "\"\""),
+                                rs.getInt("quantidade_total_geral"),
+                                rs.getDouble("media_vendas_por_transacao"));
+                    }
+                }
+            } catch (SQLException e) {
+                System.err.println("Erro ao gerar CSV para previsão de demanda: " + e.getMessage());
+                writer.println("Erro ao gerar dados para previsão de demanda," + e.getMessage().replace(",", ";"));
+            }
+
+            System.out.println("\nRelatório estratégico exportado para " + csvFilePath);
+
+        } catch (IOException e) {
+            System.err.println("Erro ao escrever o arquivo CSV '" + csvFilePath + "': " + e.getMessage());
+        }
+        System.out.println("\n--- FIM DO RELATÓRIO ESTRATÉGICO ---");
+    }
+
     /**
      * Cadastra ou atualiza o plano de assinatura do software CRM.
-     * 
+     *
      * @param tipoPlano     Tipo do plano ("Premium", "Gratuito").
      * @param chaveAtivacao Chave de ativação para planos Premium.
      * @return true se o plano foi alterado/registrado com sucesso, false caso
