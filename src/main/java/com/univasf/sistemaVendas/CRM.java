@@ -631,4 +631,69 @@ class CRM {
     private boolean isChavePremiumValida(String chaveAtivacao) {
         return "PREMIUM_KEY_123".equals(chaveAtivacao) || "XYZ_VALID_CRM_KEY".equals(chaveAtivacao);
     }
+
+    public List<Cliente> buscarClientesInativos() {
+        String sql =
+                "SELECT c.id, c.nome, c.email, MAX(v.data_venda) AS ultima_compra " +
+                        "FROM Cliente c LEFT JOIN Vendas v ON c.id = v.cliente_id " +
+                        "GROUP BY c.id, c.nome, c.email " +
+                        "HAVING (ultima_compra IS NULL OR ultima_compra < NOW() - INTERVAL 30 DAY)";
+
+        List<Cliente> clientesInativos = new ArrayList<>();
+        try (Connection conn = ConexaoDB.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                Cliente c = new Cliente(
+                        rs.getInt("id"),
+                        rs.getString("nome"),
+                        rs.getString("email"),
+                        ""  // telefone vazio ou você pode buscar telefone se quiser
+                );
+                clientesInativos.add(c);
+            }
+        } catch (SQLException e) {
+            System.out.println("Erro ao buscar clientes inativos: " + e.getMessage());
+        }
+        return clientesInativos;
+    }
+
+    public void identificarSegmentosInexplorados() {
+        String sql = """
+        SELECT p.id, p.nome, p.descricao, p.preco
+        FROM Produtos p
+        LEFT JOIN ItensVenda iv ON p.id = iv.produto_id
+        WHERE iv.id IS NULL
+    """;
+
+        try (Connection conn = ConexaoDB.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            System.out.println("\n📢 Produtos nunca vendidos:\n");
+
+            boolean encontrou = false;
+
+            while (rs.next()) {
+                encontrou = true;
+                String nome = rs.getString("nome");
+                String descricao = rs.getString("descricao");
+                double preco = rs.getDouble("preco");
+
+                System.out.printf("- %s (R$ %.2f)\n", nome, preco);
+                System.out.println("  Descrição: " + descricao);
+                System.out.println("  🧠 Sugestão: destacar em promoções ou analisar o motivo da baixa procura.\n");
+            }
+
+            if (!encontrou) {
+                System.out.println("✅ Todos os produtos já foram vendidos pelo menos uma vez.");
+            }
+
+        } catch (SQLException e) {
+            System.err.println("Erro ao identificar segmentos inexplorados: " + e.getMessage());
+        }
+    }
+
+
 }

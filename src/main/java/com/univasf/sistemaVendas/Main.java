@@ -1,5 +1,6 @@
 package com.univasf.sistemaVendas;
 
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
@@ -105,18 +106,17 @@ public class Main {
                 System.out.println("5. Listar Produtos");
                 System.out.println("6. Listar Vendas");
                 System.out.println("--- Funcionalidades Premium do CRM ---");
-                System.out
-                        .println("7. Histórico de Compras do Cliente" + (isPremiumUser ? "" : " (Requer Premium)"));
-                System.out
-                        .println("8. Listar Clientes Mais Lucrativos" + (isPremiumUser ? "" : " (Requer Premium)"));
+                System.out.println("7. Histórico de Compras do Cliente" + (isPremiumUser ? "" : " (Requer Premium)"));
+                System.out.println("8. Listar Clientes Mais Lucrativos" + (isPremiumUser ? "" : " (Requer Premium)"));
                 System.out.println("9. Listar Produtos Mais Vendidos" + (isPremiumUser ? "" : " (Requer Premium)"));
-                System.out
-                        .println("10. Listar Períodos Mais Vendidos" + (isPremiumUser ? "" : " (Requer Premium)"));
+                System.out.println("10. Listar Períodos Mais Vendidos" + (isPremiumUser ? "" : " (Requer Premium)"));
                 System.out.println("11. Prever Demanda Futura" + (isPremiumUser ? "" : " (Requer Premium)"));
-                System.out.println(
-                        "12. Gerar Relatório Estratégico Consolidado" + (isPremiumUser ? "" : " (Requer Premium)"));
+                System.out.println("12. Gerar Relatório Estratégico Consolidado" + (isPremiumUser ? "" : " (Requer Premium)"));
+                System.out.println("Atenção vendedor, lembre de consultar os clientes inativo ao menos uma vez ao dia! Função 13 logo abaixo⬇️");
+                System.out.println("13. Área do Vendedor - Clientes Inativos" + (isPremiumUser ? "" : " (Requer Premium)"));
                 System.out.println("------------------------------------");
-                System.out.println("13. Ativar/Gerenciar Plano Premium do CRM");
+                System.out.println("14. Ativar/Gerenciar Plano Premium do CRM");
+                System.out.println("15. Identifique os segmentos inexplorados");
                 System.out.println("0. Sair");
                 System.out.print("Escolha uma opção: ");
 
@@ -272,15 +272,49 @@ public class Main {
                         }
                         break;
                     }
-                    case 13: {
+                    case 13:
+                        if (isPremiumUser) {
+                            limparTela();
+                            System.out.println("--- ÁREA DO VENDEDOR: Clientes Inativos ---");
+                            List<Cliente> inativos = crm.buscarClientesInativos();
+                            if (inativos.isEmpty()) {
+                                System.out.println("Nenhum cliente inativo encontrado.");
+                            } else {
+                                for (Cliente c : inativos) {
+                                    System.out.printf("ID: %d, Nome: %s, Email: %s%n",
+                                            c.getId(), c.getNome(), c.getEmail());
+                                }
+                            }
+                        } else {
+                            limparTela();
+                            System.out.println("Esta funcionalidade é exclusiva para o plano Premium do CRM.");
+                            System.out.println("Por favor, ative o plano na opção 13 para acessá-la.");
+                        }
+                        break;
+
+                    case 14: {
                         limparTela();
                         isPremiumUser = gerenciarPlanoAssinaturaCRM(scanner, isPremiumUser, crm);
                         break;
                     }
+
+                    case 15:
+                        if (isPremiumUser) {
+                            limparTela();
+                            System.out.println("--- RELATÓRIO: Segmentos Pouco Explorados ---");
+                            crm.identificarSegmentosInexplorados();
+                        } else {
+                            limparTela();
+                            System.out.println("Esta funcionalidade é exclusiva para o plano Premium do CRM.");
+                            System.out.println("Por favor, ative o plano na opção 15 para acessá-la.");
+                        }
+                        break;
+
                     case 0:
                         limparTela();
                         System.out.println("Encerrando o sistema...");
                         System.exit(0);
+                        break;
                     default:
                         limparTela();
                         System.out.println("Opção inválida. Tente novamente.");

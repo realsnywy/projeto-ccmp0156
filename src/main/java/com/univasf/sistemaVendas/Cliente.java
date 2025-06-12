@@ -44,6 +44,10 @@ public class Cliente {
         this.totalGasto = totalGasto; // Recebe o total gasto do banco
     }
 
+    public Cliente() {
+
+    }
+
 
     // Método para registrar uma compra no banco de dados e atualizar os dados do
     // cliente
