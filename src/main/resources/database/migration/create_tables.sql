@@ -4,7 +4,8 @@ CREATE TABLE IF NOT EXISTS Cliente (
   nome VARCHAR (255) NOT NULL,
   email VARCHAR (255) UNIQUE NOT NULL,
   telefone VARCHAR (20),
-  data_cadastro DATE NOT NULL
+  data_cadastro DATE NOT NULL,
+    total_gasto DECIMAL(10,2)
 );
 -- Tabela Produtos
 CREATE TABLE IF NOT EXISTS Produtos (
@@ -33,3 +34,11 @@ CREATE TABLE IF NOT EXISTS ItensVenda (
   FOREIGN KEY (venda_id) REFERENCES Vendas (id),
   FOREIGN KEY (produto_id) REFERENCES Produtos (id)
 );
+
+-- Tabela de verificação de tempo
+CREATE TABLE IF NOT EXISTS verificacoes_alerta (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    ultima_execucao DATE
+);
+
+ALTER TABLE Cliente ADD COLUMN total_gasto DECIMAL(10,2) DEFAULT 0;
